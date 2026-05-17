@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, Response
+﻿from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
     LoginManager, UserMixin,
@@ -740,7 +740,7 @@ def api_city_report():
     })
 
 
-if __name__ == "__main__":
+    if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(debug=True, port=5000)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
