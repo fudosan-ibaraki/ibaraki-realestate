@@ -496,13 +496,18 @@ def admin_pages():
 @app.route("/stripe/create-checkout", methods=["POST"])
 @login_required
 def stripe_create_checkout():
-    """Stripeチェックアウトセッションを作成してリダイレクト"""
     try:
         customer_id = current_user.stripe_customer_id
+        if customer_id:
+            try:
+                stripe.Customer.retrieve(customer_id)
+            except Exception:
+                customer_id = None
+
         if not customer_id:
             customer = stripe.Customer.create(
                 email=current_user.email,
-                metadata={"user_id": current_user.id, "username": current_user.username}
+                metadata={"user_id": current_user.id}
             )
             customer_id = customer.id
             current_user.stripe_customer_id = customer_id
@@ -521,7 +526,6 @@ def stripe_create_checkout():
     except Exception as e:
         flash(f"決済の開始に失敗しました: {str(e)}", "error")
         return redirect(url_for("upgrade"))
-
 
 @app.route("/stripe/success")
 @login_required
