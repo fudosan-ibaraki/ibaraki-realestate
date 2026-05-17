@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}ページ設定 | 管理者パネル{% endblock %}
+
+{% block head %}
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', sans-serif; background: #F5F7FA; color: #333; }
+.admin-layout { display: flex; min-height: 100vh; }
+.admin-sidebar {
+    width: 220px; flex-shrink: 0; background: #1a237e; color: white;
+    display: flex; flex-direction: column; padding: 20px 0;
+}
+.admin-sidebar-header { padding: 0 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.15); margin-bottom: 12px; }
+.admin-sidebar-header h1 { font-size: 14px; font-weight: 700; line-height: 1.4; }
+.admin-sidebar-header p { font-size: 10px; opacity: 0.6; margin-top: 4px; }
+.admin-nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px; font-size: 13px; color: white;
+    text-decoration: none; opacity: 0.75; transition: all 0.15s;
+    border-radius: 6px; margin: 2px 8px;
+}
+.admin-nav a:hover, .admin-nav a.active { background: rgba(255,255,255,0.15); opacity: 1; }
+.admin-sidebar-footer { margin-top: auto; padding: 12px 16px; font-size: 10px; opacity: 0.4; }
+.admin-main { flex: 1; display: flex; flex-direction: column; }
+.admin-topbar {
+    background: white; padding: 14px 28px;
+    border-bottom: 1px solid #E8ECF0;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.admin-topbar h2 { font-size: 18px; font-weight: 700; color: #1a237e; }
+.admin-topbar a { font-size: 13px; color: #666; text-decoration: none; }
+.admin-content { padding: 28px; }
+.card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; }
+.card-header { padding: 16px 24px; border-bottom: 1px solid #F0F0F0; font-size: 15px; font-weight: 700; }
+table { width: 100%; border-collapse: collapse; }
+th { padding: 12px 16px; background: #F8F9FA; text-align: left; font-size: 12px; font-weight: 600; color: #777; border-bottom: 1px solid #E8ECF0; }
+th.center, td.center { text-align: center; }
+td { padding: 12px 16px; border-bottom: 1px solid #F5F5F5; font-size: 13px; vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #FAFAFA; }
+.toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; inset: 0; background: #ccc; border-radius: 24px; cursor: pointer; transition: 0.2s; }
+.toggle-slider:before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+input:checked + .toggle-slider { background: #1a237e; }
+input:checked + .toggle-slider:before { transform: translateX(20px); }
+.plan-select { padding: 5px 10px; border: 1px solid #DDD; border-radius: 6px; font-size: 12px; background: white; cursor: pointer; outline: none; }
+.plan-select:focus { border-color: #3F51B5; }
+.btn-save { padding: 12px 32px; background: #1a237e; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin: 20px 24px; }
+.btn-save:hover { background: #283593; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+    <div class="admin-sidebar">
+        <div class="admin-sidebar-header">
+            <h1>🛡️ 管理者パネル</h1>
+            <p>茨城県 不動産価格分析</p>
+        </div>
+        <nav class="admin-nav">
+            <a href="{{ url_for('admin_index') }}">👥 ユーザー管理</a>
+            <a href="{{ url_for('admin_notice') }}">📢 お知らせ編集</a>
+            <a href="{{ url_for('admin_pages') }}" class="active">📄 ページ設定</a>
+            <a href="{{ url_for('dashboard') }}">🏠 サイトへ戻る</a>
+        </nav>
+        <div class="admin-sidebar-footer">管理者専用画面</div>
+    </div>
+    <div class="admin-main">
+        <div class="admin-topbar">
+            <h2>📄 ページ設定</h2>
+            <a href="{{ url_for('admin_index') }}">← ユーザー管理へ</a>
+        </div>
+        <div class="admin-content">
+            <div class="card">
+                <div class="card-header">📄 ページごとの公開設定・プラン設定</div>
+                <form method="POST">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ページ</th>
+                                <th class="center">公開 ON/OFF</th>
+                                <th class="center">必要プラン</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pid, info in pages.items() %}
+                            {% set s = settings.get(pid, {}) %}
+                            <tr>
+                                <td>{{ info.icon }} {{ info.title }}</td>
+                                <td class="center">
+                                    <label class="toggle">
+                                        <input type="checkbox" name="{{ pid }}_visible"
+                                               {% if s.get('visible', true) %}checked{% endif %}>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </td>
+                                <td class="center">
+                                    <select name="{{ pid }}_plan" class="plan-select">
+                                        <option value="free"    {% if s.get('plan', info.plan) == 'free'    %}selected{% endif %}>🆓 free</option>
+                                        <option value="premium" {% if s.get('plan', info.plan) == 'premium' %}selected{% endif %}>⭐ premium</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <button type="submit" class="btn-save">💾 設定を保存</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

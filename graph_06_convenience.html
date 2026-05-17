@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>茨城県 利便性スコアと価格</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #F8F9FA; }
+        .header {
+            background: linear-gradient(135deg, #1a237e, #1565C0);
+            color: white; padding: 20px 28px;
+        }
+        .header h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+        .header p  { font-size: 12px; opacity: 0.75; }
+        .ctrl-bar {
+            display: flex; align-items: center; gap: 12px;
+            background: white; padding: 10px 28px;
+            border-bottom: 1px solid #EEE; font-size: 13px; color: #555;
+        }
+        .toggle-btn {
+            padding: 5px 16px; border: 1px solid #DDD;
+            border-radius: 20px; background: white;
+            font-size: 12px; cursor: pointer; color: #555;
+            transition: all 0.2s;
+        }
+        .toggle-btn.active { background: #1565C0; color: white; border-color: #1565C0; }
+        .score-desc {
+            background: white; padding: 10px 28px;
+            border-bottom: 1px solid #EEE;
+            font-size: 12px; color: #777;
+        }
+        .score-desc span { margin-right: 20px; }
+        .content { padding: 20px 28px; }
+        .graph-card {
+            background: white; border-radius: 12px;
+            padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .footer {
+            text-align: center; padding: 12px;
+            font-size: 11px; color: #AAA;
+            border-top: 1px solid #EEE; margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🏪 茨城県 利便性スコア帯別 平均取引価格</h1>
+    <p>出典：国土交通省不動産情報ライブラリ / © OpenStreetMap contributors</p>
+</div>
+
+<div class="score-desc">
+    <span>🏪 コンビニ（500m以内）：1軒10点</span>
+    <span>🛒 スーパー（500m以内）：1軒15点</span>
+    <span>🏥 病院・クリニック（1km以内）：1軒10点</span>
+    <span>🏫 学校（1km以内）：1軒5点</span>
+    <span>🏦 銀行・ATM（500m以内）：1軒5点</span>
+    <span>最大100点</span>
+</div>
+
+<div class="ctrl-bar">
+    <span>表示切替：</span>
+    <button class="toggle-btn active" onclick="switchMetric('price', this)">平均価格（万円）</button>
+    <button class="toggle-btn"        onclick="switchMetric('sqm', this)">㎡単価（円）</button>
+</div>
+
+<div class="content">
+    <div class="graph-card">
+        <div id="graph" style="width:100%; height:560px;"></div>
+    </div>
+
+    <!-- 市区町村別 平均利便性スコア -->
+    <div class="graph-card" style="margin-top:16px;">
+        <div id="graph-city" style="width:100%; height:560px;"></div>
+    </div>
+</div>
+
+<div class="footer">
+    このサービスは、国土交通省不動産情報ライブラリのAPI機能を使用していますが、
+    提供情報の最新性・正確性・完全性等が保証されたものではありません。
+</div>
+
+<script>
+const DATA_M    = {"labels": ["0〜20点", "21〜40点", "41〜60点", "61〜80点", "81〜100点"], "price": [1821.7, 1296.8, 2291.4, 2077.7, 2991.0], "sqm": [235106.0, 171280.0, 305600.0, 271924.0, 365028.0], "count": [424, 692, 552, 450, 905]};
+const DATA_L    = {"labels": ["0〜20点", "21〜40点", "41〜60点", "61〜80点", "81〜100点"], "price": [1899.7, 2281.6, 2781.6, 2945.5, 4439.8], "sqm": [61103.0, 88592.0, 113996.0, 105366.0, 141133.0], "count": [9489, 5029, 2690, 1524, 981]};
+const CITY_DATA = {"labels": ["水戸市", "結城市", "つくば市", "守谷市", "牛久市", "龍ケ崎市", "下妻市", "古河市", "那珂市", "日立市", "取手市", "つくばみらい市", "土浦市", "石岡市", "ひたちなか市", "東茨城郡大洗町", "常総市", "笠間市", "神栖市", "筑西市", "稲敷郡阿見町", "東茨城郡城里町", "那珂郡東海村", "北相馬郡利根町", "鹿嶋市", "潮来市", "常陸太田市", "猿島郡境町", "東茨城郡茨城町", "かすみがうら市", "常陸大宮市", "結城郡八千代町", "坂東市", "稲敷市", "行方市", "高萩市", "北茨城市", "桜川市", "稲敷郡美浦村", "小美玉市", "稲敷郡河内町", "鉾田市", "久慈郡大子町", "猿島郡五霞町"], "score": [59.0, 55.5, 47.7, 41.5, 38.9, 37.8, 36.6, 34.3, 33.1, 32.6, 31.2, 31.1, 29.4, 28.5, 28.5, 27.6, 26.4, 25.7, 25.7, 24.9, 24.6, 24.4, 23.9, 21.2, 19.5, 18.1, 17.8, 17.7, 17.3, 15.7, 15.6, 14.7, 13.5, 12.5, 12.3, 12.1, 11.4, 8.2, 5.7, 4.1, 3.0, 2.7, 2.2, 1.7], "conv": [2.0, 1.0, 1.1, 0.9, 1.1, 1.1, 0.8, 0.8, 0.7, 0.6, 0.4, 1.1, 1.0, 0.3, 0.7, 0.8, 0.6, 1.1, 0.8, 0.7, 0.5, 1.1, 0.9, 0.6, 0.5, 0.5, 0.5, 0.4, 0.3, 0.5, 0.3, 0.3, 0.2, 0.3, 0.2, 0.5, 0.3, 0.2, 0.2, 0.0, 0.1, 0.0, 0.0, 0.0], "super_": [0.5, 1.6, 0.9, 0.6, 0.7, 0.5, 1.5, 0.5, 1.2, 0.3, 0.5, 0.7, 0.4, 0.4, 0.4, 0.1, 0.3, 0.4, 0.2, 0.3, 0.2, 0.4, 0.4, 0.6, 0.2, 0.0, 0.2, 0.0, 0.7, 0.4, 0.4, 0.5, 0.3, 0.2, 0.4, 0.0, 0.1, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "hospital": [2.2, 1.5, 1.2, 0.3, 0.9, 0.8, 1.0, 1.0, 0.0, 0.6, 0.7, 0.0, 0.3, 0.9, 0.5, 0.0, 0.8, 0.1, 0.5, 0.7, 0.7, 0.0, 0.1, 0.2, 0.8, 0.2, 0.1, 0.2, 0.2, 0.0, 0.0, 0.0, 0.1, 0.1, 0.0, 0.0, 0.3, 0.0, 0.1, 0.1, 0.0, 0.0, 0.0, 0.0], "school": [3.3, 1.1, 3.0, 3.7, 1.5, 2.2, 1.6, 2.0, 1.4, 2.6, 2.2, 2.0, 1.9, 2.1, 1.9, 1.6, 1.5, 1.2, 1.5, 1.2, 1.5, 0.8, 1.3, 1.0, 0.8, 2.1, 1.4, 1.5, 0.4, 1.0, 1.0, 0.4, 1.0, 0.6, 1.0, 1.3, 0.6, 0.7, 0.4, 0.6, 0.3, 0.4, 0.4, 0.3], "bank": [1.8, 0.1, 1.7, 0.5, 0.3, 0.0, 0.7, 0.5, 0.1, 0.5, 0.2, 0.0, 0.3, 0.0, 0.3, 2.0, 0.3, 0.3, 0.4, 0.2, 0.1, 0.7, 0.2, 0.0, 0.2, 0.0, 0.4, 0.8, 0.0, 0.0, 0.3, 0.3, 0.2, 0.5, 0.0, 0.1, 0.3, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0], "count": [2412, 356, 2697, 929, 989, 749, 196, 1319, 257, 1095, 1505, 732, 1624, 377, 961, 81, 284, 365, 514, 545, 485, 63, 206, 149, 712, 104, 215, 105, 135, 203, 167, 85, 222, 217, 87, 136, 240, 149, 139, 223, 30, 575, 55, 47]};
+
+let currentMetric = 'price';
+
+// 市区町村別スコアグラフ（初期表示のみ）
+function drawCityScore() {
+    const colors = CITY_DATA.score.map(s =>
+        s >= 60 ? '#1565C0' :
+        s >= 40 ? '#1E88E5' :
+        s >= 20 ? '#64B5F6' : '#BBDEFB'
+    );
+
+    Plotly.react('graph-city', [{
+        x: CITY_DATA.labels,
+        y: CITY_DATA.score,
+        type: 'bar',
+        marker: { color: colors },
+        text: CITY_DATA.score.map(s => s + '点'),
+        textposition: 'outside',
+        hovertemplate: CITY_DATA.labels.map((l, i) =>
+            `<b>${l}</b><br>` +
+            `平均スコア: ${CITY_DATA.score[i]}点<br>` +
+            `コンビニ: ${CITY_DATA.conv[i]}軒<br>` +
+            `スーパー: ${CITY_DATA.super_[i]}軒<br>` +
+            `病院: ${CITY_DATA.hospital[i]}軒<br>` +
+            `学校: ${CITY_DATA.school[i]}軒<br>` +
+            `銀行: ${CITY_DATA.bank[i]}軒<br>` +
+            `件数: ${CITY_DATA.count[i].toLocaleString()}件<extra></extra>`
+        ),
+        name: '',
+    }], {
+        title: {
+            text: '茨城県 市区町村別 平均利便性スコア（100点満点）',
+            font: { size: 16 }, x: 0.5, xanchor: 'center'
+        },
+        xaxis: {
+            title: '市区町村',
+            tickangle: -40,
+            tickfont: { size: 11 },
+            gridcolor: '#EEEEEE',
+        },
+        yaxis: {
+            title: '平均利便性スコア（点）',
+            gridcolor: '#EEEEEE',
+            zeroline: false,
+            range: [0, Math.max(...CITY_DATA.score) * 1.25],
+        },
+        plot_bgcolor: 'white',
+        paper_bgcolor: 'white',
+        showlegend: false,
+        margin: { l:70, r:30, t:80, b:120 },
+        bargap: 0.3,
+    });
+}
+
+function updateGraph() {
+    const isPrice = currentMetric === 'price';
+    const yKey    = isPrice ? 'price' : 'sqm';
+    const yTitle  = isPrice ? '平均取引価格（万円）' : '平均㎡単価（円）';
+
+    const allY = [...DATA_M[yKey], ...DATA_L[yKey]];
+
+    const traces = [
+        {
+            x: DATA_M.labels,
+            y: DATA_M[yKey],
+            name: '🏢 中古マンション',
+            type: 'bar',
+            marker: { color: '#3F51B5' },
+            text: DATA_M[yKey].map((v, i) =>
+                `${isPrice ? v + '万円' : v.toLocaleString() + '円'}<br>(${DATA_M.count[i].toLocaleString()}件)`
+            ),
+            textposition: 'outside',
+            hovertemplate: DATA_M.labels.map((l, i) =>
+                `<b>中古マンション ${l}</b><br>` +
+                (isPrice ? `平均価格: ${DATA_M.price[i]}万円` : `㎡単価: ${DATA_M.sqm[i].toLocaleString()}円`) +
+                `<br>件数: ${DATA_M.count[i].toLocaleString()}件<extra></extra>`
+            ),
+        },
+        {
+            x: DATA_L.labels,
+            y: DATA_L[yKey],
+            name: '🏠 宅地（土地と建物）',
+            type: 'bar',
+            marker: { color: '#43A047' },
+            text: DATA_L[yKey].map((v, i) =>
+                `${isPrice ? v + '万円' : v.toLocaleString() + '円'}<br>(${DATA_L.count[i].toLocaleString()}件)`
+            ),
+            textposition: 'outside',
+            hovertemplate: DATA_L.labels.map((l, i) =>
+                `<b>宅地 ${l}</b><br>` +
+                (isPrice ? `平均価格: ${DATA_L.price[i]}万円` : `㎡単価: ${DATA_L.sqm[i].toLocaleString()}円`) +
+                `<br>件数: ${DATA_L.count[i].toLocaleString()}件<extra></extra>`
+            ),
+        },
+    ];
+
+    Plotly.react('graph', traces, {
+        title: {
+            text: '茨城県 利便性スコア帯別 ' + (isPrice ? '平均価格' : '平均㎡単価'),
+            font: { size: 16 }, x: 0.5, xanchor: 'center'
+        },
+        xaxis: {
+            title: '利便性スコア帯（100点満点）',
+            categoryorder: 'array',
+            categoryarray: DATA_M.labels,
+            gridcolor: '#EEEEEE',
+        },
+        yaxis: {
+            title: yTitle,
+            gridcolor: '#EEEEEE',
+            zeroline: false,
+            range: [0, Math.max(...allY) * 1.25],
+        },
+        barmode: 'group',
+        bargap: 0.2,
+        bargroupgap: 0.05,
+        plot_bgcolor: 'white',
+        paper_bgcolor: 'white',
+        legend: {
+            orientation: 'h',
+            x: 0.5, xanchor: 'center', y: -0.15
+        },
+        margin: { l:70, r:30, t:80, b:80 },
+    });
+}
+
+function switchMetric(metric, btn) {
+    currentMetric = metric;
+    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    updateGraph();
+}
+
+updateGraph();
+drawCityScore();
+</script>
+</body>
+</html>

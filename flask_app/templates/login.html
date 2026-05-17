@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}ログイン | 茨城県 不動産価格分析{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">🏠</div>
+            <h1>茨城県 不動産価格分析</h1>
+            <p>ログインしてください</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('login') }}">
+            <div class="form-group">
+                <label>メールアドレス</label>
+                <input type="email" name="email" required placeholder="example@email.com">
+            </div>
+            <div class="form-group">
+                <label>パスワード</label>
+                <input type="password" name="password" required placeholder="パスワード">
+            </div>
+            <button type="submit" class="btn-primary">ログイン</button>
+        </form>
+
+        <div class="auth-footer">
+            アカウントをお持ちでない方は
+            <a href="{{ url_for('register') }}">新規登録</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

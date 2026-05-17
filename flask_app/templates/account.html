@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}アカウント | 茨城県 不動産価格分析{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">👤</div>
+            <h1>アカウント情報</h1>
+        </div>
+
+        <div class="account-info">
+            <div class="info-row">
+                <span class="info-label">ユーザー名</span>
+                <span class="info-value">{{ current_user.username }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">メールアドレス</span>
+                <span class="info-value">{{ current_user.email }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">プラン</span>
+                <span class="info-value">
+                    <span class="plan-badge plan-{{ current_user.plan }}">
+                        {{ "Premium ⭐" if current_user.plan == "premium" else "無料プラン" }}
+                    </span>
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">登録日</span>
+                <span class="info-value">{{ current_user.created_at.strftime('%Y年%m月%d日') }}</span>
+            </div>
+        </div>
+
+        {% if current_user.plan != "premium" %}
+        <a href="{{ url_for('upgrade') }}" class="btn-primary" style="display:block;text-align:center;text-decoration:none;">
+            ⭐ プレミアムにアップグレード
+        </a>
+        {% elif current_user.stripe_subscription_id %}
+        <div style="margin-top:16px; padding:16px; background:#FFF8E1; border-radius:8px; border:1px solid #FFE082;">
+            <p style="font-size:13px; color:#795548; margin-bottom:12px;">
+                サブスクリプションをキャンセルすると、現在の請求期間終了後に無料プランに戻ります。
+            </p>
+            <form action="{{ url_for('stripe_cancel_subscription') }}" method="POST"
+                  onsubmit="return confirm('本当にキャンセルしますか？期間終了後に無料プランに戻ります。')">
+                <button type="submit" style="width:100%; padding:10px; background:white; color:#C62828;
+                    border:1px solid #EF9A9A; border-radius:6px; font-size:13px; cursor:pointer;">
+                    サブスクリプションをキャンセル
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="auth-footer">
+            <a href="{{ url_for('dashboard') }}">← ダッシュボードに戻る</a>
+            &nbsp;|&nbsp;
+            <a href="{{ url_for('logout') }}">ログアウト</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

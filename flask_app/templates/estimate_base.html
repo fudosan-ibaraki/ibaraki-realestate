@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>価格推定 | 茨城県 不動産価格分析</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="app">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>🏠 茨城県<br>不動産価格分析</h1>
+            <p>2020〜2025年 取引データ</p>
+        </div>
+        <div class="sidebar-section">メニュー</div>
+        <a href="/dashboard/home"  class="nav-item"><span class="nav-icon">🏠</span>ホーム</a>
+        <a href="/dashboard/guide" class="nav-item"><span class="nav-icon">📋</span>ガイドライン</a>
+        <a href="/dashboard/map"   class="nav-item"><span class="nav-icon">🗺️</span>地図</a>
+        <div class="sidebar-section">グラフ分析</div>
+        <a href="/dashboard/g01" class="nav-item"><span class="nav-icon">📈</span>価格トレンド</a>
+        <a href="/dashboard/g02" class="nav-item"><span class="nav-icon">🏗️</span>築年数と価格</a>
+        <a href="/dashboard/g03" class="nav-item"><span class="nav-icon">🚉</span>駅距離と価格</a>
+        <a href="/dashboard/g04" class="nav-item"><span class="nav-icon">🏢</span>間取り別価格</a>
+        <a href="/dashboard/g05" class="nav-item"><span class="nav-icon">📊</span>割安・割高</a>
+        <a href="/dashboard/g06" class="nav-item"><span class="nav-icon">🏪</span>利便性と価格</a>
+        <a href="/dashboard/g07" class="nav-item"><span class="nav-icon">⚠️</span>浸水リスク別</a>
+        <a href="/dashboard/g08" class="nav-item"><span class="nav-icon">📉</span>乖離率推移</a>
+        <div class="sidebar-section">ツール</div>
+        <a href="/estimate" class="nav-item active"><span class="nav-icon">🔍</span>価格推定</a>
+        <div class="sidebar-footer">
+            <div class="sidebar-links">
+                <a href="/account">アカウント</a>
+                <a href="/logout">ログアウト</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="topbar">
+            <div class="topbar-title">🔍 価格推定</div>
+            <div class="topbar-right">
+                <div class="topbar-badge">データ更新: 2025年Q2</div>
+            </div>
+        </div>
+
+        <div class="estimate-page">
+            <div class="estimate-form-card">
+                <h2 class="estimate-title">🔍 条件を入力して相場を調べる</h2>
+                <p class="estimate-desc">過去の取引データをもとに、条件に近い物件の価格相場を算出します。</p>
+                <form id="estimate-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>市区町村 <span class="required">必須</span></label>
+                            <select name="city_name" id="city_name" required>
+                                <option value="">選択してください</option>
+                                CITY_OPTIONS_PLACEHOLDER
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>種別 <span class="required">必須</span></label>
+                            <select name="trade_type" required>
+                                <option value="">選択してください</option>
+                                <option value="マンション">中古マンション</option>
+                                <option value="宅地">宅地（土地と建物）</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>面積（㎡） <span class="required">必須</span></label>
+                            <input type="number" name="area" placeholder="例：70" min="1" max="2000" required>
+                        </div>
+                        <div class="form-group">
+                            <label>築年数（年） <span class="required">必須</span></label>
+                            <input type="number" name="building_age" placeholder="例：20" min="0" max="80" required>
+                        </div>
+                        <div class="form-group">
+                            <label>間取り</label>
+                            <select name="floor_plan">
+                                <option value="">指定なし</option>
+                                <option value="1K">1K</option>
+                                <option value="1DK">1DK</option>
+                                <option value="1LDK">1LDK</option>
+                                <option value="2K">2K</option>
+                                <option value="2DK">2DK</option>
+                                <option value="2LDK">2LDK</option>
+                                <option value="3DK">3DK</option>
+                                <option value="3LDK">3LDK</option>
+                                <option value="4LDK">4LDK</option>
+                                <option value="5LDK以上">5LDK以上</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>地区</label>
+                            <select name="district" id="district-select">
+                                <option value="">市区町村を先に選択</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>駅距離（m以内）</label>
+                            <select name="station_dist">
+                                <option value="">指定なし</option>
+                                <option value="500">500m以内</option>
+                                <option value="1000">1km以内</option>
+                                <option value="2000">2km以内</option>
+                                <option value="3000">3km以内</option>
+                                <option value="5000">5km以内</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>浸水リスク</label>
+                            <select name="hazard_risk">
+                                <option value="指定なし">指定なし</option>
+                                <option value="なし">なし（安全）</option>
+                                <option value="低">低リスク以下</option>
+                                <option value="中">中リスク以下</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>利便性スコア（点以上）</label>
+                            <select name="conv_score_min">
+                                <option value="">指定なし</option>
+                                <option value="20">20点以上</option>
+                                <option value="40">40点以上</option>
+                                <option value="60">60点以上</option>
+                                <option value="80">80点以上</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-estimate">🔍 相場を調べる</button>
+                </form>
+            </div>
+
+            <div id="result-area" style="display:none;">
+                <div id="result-error" class="result-error" style="display:none;"></div>
+                <div id="result-card" class="result-card" style="display:none;">
+                    <h3 class="result-title">📊 推定結果</h3>
+                    <p id="result-note" class="result-note"></p>
+                    <div class="result-grid">
+                        <div class="result-stat main-stat">
+                            <div class="result-label">推定価格（中央値）</div>
+                            <div class="result-value" id="r-median"></div>
+                        </div>
+                        <div class="result-stat">
+                            <div class="result-label">価格帯（25〜75%）</div>
+                            <div class="result-value" id="r-range"></div>
+                        </div>
+                        <div class="result-stat">
+                            <div class="result-label">㎡単価（中央値）</div>
+                            <div class="result-value" id="r-sqm"></div>
+                        </div>
+                        <div class="result-stat">
+                            <div class="result-label">類似物件数</div>
+                            <div class="result-value" id="r-count"></div>
+                        </div>
+                        <div class="result-stat">
+                            <div class="result-label">最安値</div>
+                            <div class="result-value" id="r-min"></div>
+                        </div>
+                        <div class="result-stat">
+                            <div class="result-label">最高値</div>
+                            <div class="result-value" id="r-max"></div>
+                        </div>
+                    </div>
+                    <h4 class="sample-title">📋 類似物件サンプル（最新5件）</h4>
+                    <div class="sample-table-wrap">
+                        <table class="sample-table">
+                            <thead>
+                                <tr>
+                                    <th>取引価格</th><th>面積</th><th>築年数</th>
+                                    <th>最寄り駅</th><th>駅距離</th><th>浸水リスク</th>
+                                    <th>地区</th><th>間取り</th><th>取引年</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sample-tbody"></tbody>
+                        </table>
+                    </div>
+                    <p class="disclaimer-small">
+                        ※ 本推定は過去の取引データの統計値であり、実際の取引価格を保証するものではありません。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+// 市区町村変更時に地区を動的取得
+document.getElementById('city_name').addEventListener('change', function() {
+    var cityName = this.value;
+    var districtSel = document.getElementById('district-select');
+    districtSel.innerHTML = '<option value="">読み込み中...</option>';
+    if (!cityName) {
+        districtSel.innerHTML = '<option value="">市区町村を先に選択</option>';
+        return;
+    }
+    fetch('/api/districts?city_name=' + encodeURIComponent(cityName))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            districtSel.innerHTML = '<option value="">指定なし</option>';
+            data.districts.forEach(function(d) {
+                var opt = document.createElement('option');
+                opt.value = d; opt.textContent = d;
+                districtSel.appendChild(opt);
+            });
+        })
+        .catch(function() {
+            districtSel.innerHTML = '<option value="">取得失敗</option>';
+        });
+});
+
+document.getElementById('estimate-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var btn = document.querySelector('.btn-estimate');
+    btn.textContent = '検索中...';
+    btn.disabled = true;
+
+    var fd          = new FormData(e.target);
+    var params      = new URLSearchParams(fd);
+
+    document.getElementById('result-area').style.display = 'block';
+    document.getElementById('result-error').style.display = 'none';
+    document.getElementById('result-card').style.display = 'none';
+
+    fetch('/api/estimate?' + params.toString())
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.error) {
+                document.getElementById('result-error').style.display = 'block';
+                document.getElementById('result-error').textContent = data.error;
+            } else {
+                document.getElementById('result-card').style.display = 'block';
+                document.getElementById('r-median').textContent = data.median + ' 万円';
+                document.getElementById('r-range').textContent  = data.q25 + ' 〜 ' + data.q75 + ' 万円';
+                document.getElementById('r-sqm').textContent    = data.sqm_median.toLocaleString() + ' 円/㎡';
+                document.getElementById('r-count').textContent  = data.count + ' 件';
+                document.getElementById('r-min').textContent    = data.min + ' 万円';
+                document.getElementById('r-max').textContent    = data.max + ' 万円';
+                document.getElementById('result-note').textContent = data.count + '件の類似取引データをもとに算出しています。';
+                var tbody = document.getElementById('sample-tbody');
+                tbody.innerHTML = '';
+                for (var i = 0; i < data.samples.length; i++) {
+                    var s = data.samples[i];
+                    var tr = document.createElement('tr');
+                    var vals = [
+                        s.trade_price_man + '万円',
+                        s.area ? s.area + '㎡' : '-',
+                        s.age  ? s.age  + '年' : '-',
+                        s.nearest_station_name || '-',
+                        s.station_dist_m ? s.station_dist_m + 'm' : '-',
+                        s.hazard_risk || '-',
+                        s.district    || '-',
+                        s.floor_plan  || '-',
+                        s.year ? s.year + '年' : '-'
+                    ];
+                    for (var j = 0; j < vals.length; j++) {
+                        var td = document.createElement('td');
+                        td.textContent = vals[j];
+                        if (j === 0) td.style.fontWeight = 'bold';
+                        tr.appendChild(td);
+                    }
+                    tbody.appendChild(tr);
+                }
+                document.getElementById('result-card').scrollIntoView({behavior:'smooth'});
+            }
+            btn.textContent = '🔍 相場を調べる';
+            btn.disabled = false;
+        })
+        .catch(function() {
+            document.getElementById('result-error').style.display = 'block';
+            document.getElementById('result-error').textContent = 'エラーが発生しました。';
+            btn.textContent = '🔍 相場を調べる';
+            btn.disabled = false;
+        });
+});
+});
+</script>
+</body>
+</html>

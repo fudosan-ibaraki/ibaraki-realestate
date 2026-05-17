@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>茨城県 不動産価格分析ダッシュボード</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', sans-serif;
+            background: #F5F7FA;
+            color: #333;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ── サイドバー ── */
+        .sidebar {
+            width: 240px;
+            flex-shrink: 0;
+            background: #1a237e;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .sidebar-header h1 {
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.4;
+            margin-bottom: 4px;
+        }
+
+        .sidebar-header p {
+            font-size: 10px;
+            opacity: 0.65;
+        }
+
+        .sidebar-section {
+            padding: 12px 8px 4px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            opacity: 0.55;
+            text-transform: uppercase;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 13px;
+            border-radius: 6px;
+            margin: 2px 8px;
+            transition: all 0.15s;
+            opacity: 0.8;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.12);
+            opacity: 1;
+        }
+        .nav-item.locked { opacity: 0.45; cursor: pointer; }
+        .nav-item.locked:hover { background: rgba(255,255,255,0.06); }
+        .lock-badge { margin-left: auto; font-size: 11px; }
+
+        .nav-item.active {
+            background: rgba(255,255,255,0.2);
+            opacity: 1;
+            font-weight: 600;
+        }
+
+        .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+        .sidebar-user {
+            margin-top: auto;
+            padding: 12px 16px;
+            border-top: 1px solid rgba(255,255,255,0.15);
+        }
+        .sidebar-username {
+            font-size: 12px; font-weight: 600;
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 8px;
+        }
+        .sidebar-plan {
+            font-size: 10px; padding: 2px 8px;
+            border-radius: 10px; font-weight: 600;
+        }
+        .plan-free    { background: rgba(255,255,255,0.2); color: white; }
+        .plan-premium { background: #FFD700; color: #333; }
+        .plan-admin   { background: #FF6B6B; color: white; }
+        .sidebar-user-links {
+            display: flex; gap: 12px; font-size: 11px;
+            opacity: 0.7; margin-bottom: 10px;
+        }
+        .sidebar-user-links a:hover { opacity: 1; text-decoration: underline; color: white; }
+        .sidebar-footer {
+            padding: 10px 16px;
+            font-size: 10px; opacity: 0.4;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            line-height: 1.6;
+        }
+
+        /* ── メインコンテンツ ── */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .topbar {
+            background: white;
+            padding: 12px 24px;
+            border-bottom: 1px solid #E8ECF0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        }
+
+        .topbar-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a237e;
+        }
+
+        .topbar-badge {
+            font-size: 11px;
+            background: #E8EAF6;
+            color: #1a237e;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+
+        .content-area {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ── iframeページ ── */
+        .page {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .page iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* ── ホームページ ── */
+        .home-page {
+            overflow-y: auto;
+            padding: 24px;
+            height: 100%;
+        }
+
+        .home-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            max-width: 1200px;
+        }
+
+        .home-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .home-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            border-color: #3F51B5;
+        }
+
+        .home-card-icon { font-size: 32px; margin-bottom: 12px; }
+        .home-card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1a237e;
+            margin-bottom: 6px;
+        }
+        .home-card-desc {
+            font-size: 12px;
+            color: #777;
+            line-height: 1.6;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+            max-width: 1200px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a237e;
+        }
+
+        .stat-unit {
+            font-size: 12px;
+            color: #999;
+            margin-left: 4px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #555;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #E8ECF0;
+            max-width: 1200px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- サイドバー -->
+<div class="sidebar">
+    <div class="sidebar-header">
+        <h1>🏠 茨城県<br>不動産価格分析</h1>
+        <p>2020〜2025年 取引データ</p>
+    </div>
+
+    <div class="sidebar-section">メニュー</div>
+    {% for page_id, info in pages.items() %}
+    {% if info.section == "menu" %}
+    {% set is_locked = info.plan == "premium" and current_user.plan not in ("premium","admin") %}
+    <div class="nav-item {% if page == page_id %}active{% endif %} {% if is_locked %}locked{% endif %}"
+         onclick="{% if not is_locked %}showPage('{{ page_id }}', this){% else %}window.location='{{ url_for('upgrade') }}'{% endif %}">
+        <span class="nav-icon">{{ info.icon }}</span> {{ info.title }}
+        {% if is_locked %}<span class="lock-badge">🔒</span>{% endif %}
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <div class="sidebar-section">グラフ分析</div>
+    {% for page_id, info in pages.items() %}
+    {% if info.section == "graph" %}
+    {% set is_locked = info.plan == "premium" and current_user.plan not in ("premium","admin") %}
+    <div class="nav-item {% if page == page_id %}active{% endif %} {% if is_locked %}locked{% endif %}"
+         onclick="{% if not is_locked %}showPage('{{ page_id }}', this){% else %}window.location='{{ url_for('upgrade') }}'{% endif %}">
+        <span class="nav-icon">{{ info.icon }}</span> {{ info.title }}
+        {% if is_locked %}<span class="lock-badge">🔒</span>{% endif %}
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <div class="sidebar-section">ツール</div>
+    <div class="nav-item" onclick="window.location='{{ url_for('estimate') }}'">
+        <span class="nav-icon">🔍</span> 価格推定
+    </div>
+
+    <div class="sidebar-user">
+        <div class="sidebar-username">
+            👤 {{ current_user.username }}
+            <span class="sidebar-plan plan-{{ current_user.plan }}">
+                {{ "Premium" if current_user.plan == "premium" else ("Admin" if current_user.plan == "admin" else "無料") }}
+            </span>
+        </div>
+        <div class="sidebar-user-links">
+            <a href="{{ url_for('account') }}">アカウント</a>
+            <a href="{{ url_for('upgrade') }}">{% if current_user.plan == "free" %}⭐ アップグレード{% else %}プラン管理{% endif %}</a>
+            <a href="{{ url_for('logout') }}">ログアウト</a>
+        </div>
+    </div>
+    <div class="sidebar-footer">
+        出典：国土交通省不動産情報ライブラリ<br>
+        © OpenStreetMap contributors<br>
+        国土地理院
+    </div>
+</div>
+
+<!-- メインコンテンツ -->
+<div class="main">
+    <div class="topbar">
+        <div class="topbar-title" id="page-title">ホーム</div>
+        <div class="topbar-badge">データ更新: 2025年Q2</div>
+    </div>
+
+    <div class="content-area">
+
+        <!-- ガイドライン -->
+        <div id="page-guide" class="page">
+            <iframe src="/static/guide.html" title="ガイドライン"></iframe>
+        </div>
+
+        <!-- ホーム -->
+        <div id="page-home" class="page active">
+            <div class="home-page">
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <div class="stat-label">取引件数（総計）</div>
+                        <div class="stat-value">22,737<span class="stat-unit">件</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">対象期間</div>
+                        <div class="stat-value">2020<span class="stat-unit">〜2025年</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">対象市区町村</div>
+                        <div class="stat-value">44<span class="stat-unit">市区町村</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">地価公示地点</div>
+                        <div class="stat-value">676<span class="stat-unit">地点</span></div>
+                    </div>
+                </div>
+
+                <div class="section-title">📌 分析メニュー</div>
+                <div class="home-grid">
+                    <div class="home-card" onclick="showPage('map', document.querySelector('[onclick*=map]'))">
+                        <div class="home-card-icon">🗺️</div>
+                        <div class="home-card-title">地図</div>
+                        <div class="home-card-desc">価格ヒートマップ・割安割高マップ・浸水リスク・駅・施設を地図上で確認できます。</div>
+                    </div>
+                    <div class="home-card" onclick="showPage('g01', document.querySelector('[onclick*=g01]'))">
+                        <div class="home-card-icon">📈</div>
+                        <div class="home-card-title">価格トレンド</div>
+                        <div class="home-card-desc">市区町村別の年別平均価格推移を折れ線グラフで確認できます。</div>
+                    </div>
+                    <div class="home-card" onclick="showPage('g02', document.querySelector('[onclick*=g02]'))">
+                        <div class="home-card-icon">🏗️</div>
+                        <div class="home-card-title">築年数と価格</div>
+                        <div class="home-card-desc">築年数ごとの平均価格・㎡単価の変化を棒グラフで確認できます。</div>
+                    </div>
+                    <div class="home-card" onclick="showPage('g03', document.querySelector('[onclick*=g03]'))">
+                        <div class="home-card-icon">🚉</div>
+                        <div class="home-card-title">駅距離と価格</div>
+                        <div class="home-card-desc">最寄り駅からの距離帯ごとの平均価格を棒グラフで確認できます。</div>
+                    </div>
+                    <div class="home-card" onclick="showPage('g04', document.querySelector('[onclick*=g04]'))">
+                        <div class="home-card-icon">🏢</div>
+                        <div class="home-card-title">間取り別価格</div>
+                        <div class="home-card-desc">マンションの間取り別の取引件数割合・平均価格を円グラフで確認できます。</div>
+                    </div>
+                    <div class="home-card" onclick="showPage('g05', document.querySelector('[onclick*=g05]'))">
+                        <div class="home-card-icon">📊</div>
+                        <div class="home-card-title">割安・割高ランキング</div>
+                        <div class="home-card-desc">地区別の相対スコアから割安・割高エリアをランキング形式で確認できます。</div>
+                    </div>
+                    <div class="home-card" onclick="showPage('g06', document.querySelector('[onclick*=g06]'))">
+                        <div class="home-card-icon">🏪</div>
+                        <div class="home-card-title">利便性と価格</div>
+                        <div class="home-card-desc">コンビニ・スーパー・病院などの施設充実度と価格の関係を確認できます。</div>
+                    </div>
+                    <div class="home-card" onclick="showPage('g07', document.querySelector('[onclick*=g07]'))">
+                        <div class="home-card-icon">⚠️</div>
+                        <div class="home-card-title">浸水リスク別価格</div>
+                        <div class="home-card-desc">洪水浸水リスク別の取引価格分布を箱ひげ図で確認できます。</div>
+                    </div>
+                    <div class="home-card" onclick="showPage('g08', document.querySelector('[onclick*=g08]'))">
+                        <div class="home-card-icon">📉</div>
+                        <div class="home-card-title">乖離率推移</div>
+                        <div class="home-card-desc">公示地価と取引価格（土地代）の乖離率の年別推移を確認できます。</div>
+                    </div>
+                    <div class="home-card" onclick="showPage('guide', document.querySelector('[onclick*=guide]'))">
+                        <div class="home-card-icon">📋</div>
+                        <div class="home-card-title">ガイドライン</div>
+                        <div class="home-card-desc">データの出典・収集方法、各指標の計算方法、注意事項・免責事項をまとめています。</div>
+                    </div>
+                </div>
+
+                <div class="section-title" style="margin-top:24px;">⚠️ 免責事項</div>
+                <p style="font-size:12px;color:#999;max-width:1200px;line-height:1.8;">
+                    このサービスは、国土交通省不動産情報ライブラリのAPI機能を使用していますが、提供情報の最新性、正確性、完全性等が保証されたものではありません。
+                    乖離率は建物の減価償却を概算で計算したものであり、参考指標としてご利用ください。
+                </p>
+            </div>
+        </div>
+
+        <!-- 地図 -->
+        <div id="page-map" class="page">
+            <iframe src="/static/ibaraki_map.html" title="地図"></iframe>
+        </div>
+
+        <!-- グラフ01〜08 -->
+        <div id="page-g01" class="page">
+            <iframe src="/static/g01.html" title="価格トレンド"></iframe>
+        </div>
+        <div id="page-g02" class="page">
+            <iframe src="/static/g02.html" title="築年数と価格"></iframe>
+        </div>
+        <div id="page-g03" class="page">
+            <iframe src="/static/g03.html" title="駅距離と価格"></iframe>
+        </div>
+        <div id="page-g04" class="page">
+            <iframe src="/static/g04.html" title="間取り別価格"></iframe>
+        </div>
+        <div id="page-g05" class="page">
+            <iframe src="/static/g05.html" title="割安・割高"></iframe>
+        </div>
+        <div id="page-g06" class="page">
+            <iframe src="/static/g06.html" title="利便性と価格"></iframe>
+        </div>
+        <div id="page-g07" class="page">
+            <iframe src="/static/g07.html" title="浸水リスク別"></iframe>
+        </div>
+        <div id="page-g08" class="page">
+            <iframe src="/static/g08.html" title="乖離率推移"></iframe>
+        </div>
+
+        <div id="page-g09" class="page">
+            <iframe src="/static/g09.html" title="エリアレポート"></iframe>
+        </div>
+
+    </div>
+</div>
+
+<script>
+const PAGE_TITLES = {
+    home:  'ホーム',
+    guide: 'ガイドライン',
+    map:   '地図',
+    g01:   '価格トレンド',
+    g02:   '築年数と価格',
+    g03:   '駅距離と価格',
+    g04:   '間取り別価格',
+    g05:   '割安・割高ランキング',
+    g06:   '利便性と価格',
+    g07:   '浸水リスク別価格',
+    g08:   '乖離率推移',
+};
+
+function showPage(pageId, navEl) {
+    // ページ切り替え
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + pageId).classList.add('active');
+
+    // ナビアクティブ切り替え
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if (navEl) navEl.classList.add('active');
+
+    // タイトル更新
+    document.getElementById('page-title').textContent = PAGE_TITLES[pageId] || pageId;
+}
+</script>
+
+</body>
+</html>

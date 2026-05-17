@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}管理者パネル | 茨城県 不動産価格分析{% endblock %}
+
+{% block head %}
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', sans-serif; background: #F5F7FA; color: #333; }
+
+.admin-layout { display: flex; min-height: 100vh; }
+
+.admin-sidebar {
+    width: 220px; flex-shrink: 0;
+    background: #1a237e; color: white;
+    display: flex; flex-direction: column;
+    padding: 20px 0;
+}
+.admin-sidebar-header { padding: 0 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.15); margin-bottom: 12px; }
+.admin-sidebar-header h1 { font-size: 14px; font-weight: 700; line-height: 1.4; }
+.admin-sidebar-header p { font-size: 10px; opacity: 0.6; margin-top: 4px; }
+.admin-nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px; font-size: 13px; color: white;
+    text-decoration: none; opacity: 0.75;
+    transition: all 0.15s;
+    border-radius: 6px; margin: 2px 8px;
+}
+.admin-nav a:hover, .admin-nav a.active { background: rgba(255,255,255,0.15); opacity: 1; }
+.admin-sidebar-footer { margin-top: auto; padding: 12px 16px; font-size: 10px; opacity: 0.4; }
+
+.admin-main { flex: 1; display: flex; flex-direction: column; }
+.admin-topbar {
+    background: white; padding: 14px 28px;
+    border-bottom: 1px solid #E8ECF0;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.admin-topbar h2 { font-size: 18px; font-weight: 700; color: #1a237e; }
+.admin-topbar a { font-size: 13px; color: #666; text-decoration: none; }
+.admin-topbar a:hover { color: #1a237e; }
+
+.admin-content { padding: 28px; overflow-y: auto; }
+
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+.stat-card {
+    background: white; border-radius: 12px; padding: 20px 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.stat-label { font-size: 12px; color: #999; margin-bottom: 6px; }
+.stat-value { font-size: 32px; font-weight: 700; color: #1a237e; }
+.stat-value span { font-size: 14px; color: #999; margin-left: 4px; }
+
+.card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; }
+.card-header {
+    padding: 16px 24px; border-bottom: 1px solid #F0F0F0;
+    font-size: 15px; font-weight: 700; color: #333;
+    display: flex; align-items: center; gap: 8px;
+}
+
+table { width: 100%; border-collapse: collapse; }
+th {
+    padding: 12px 16px; background: #F8F9FA;
+    text-align: left; font-size: 12px; font-weight: 600;
+    color: #777; border-bottom: 1px solid #E8ECF0;
+    white-space: nowrap;
+}
+td { padding: 12px 16px; border-bottom: 1px solid #F5F5F5; font-size: 13px; vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #FAFAFA; }
+
+.plan-badge {
+    display: inline-block; padding: 3px 10px;
+    border-radius: 10px; font-size: 11px; font-weight: 600;
+}
+.plan-free    { background: #E0E0E0; color: #555; }
+.plan-premium { background: #FFD700; color: #333; }
+.plan-admin   { background: #FF5722; color: white; }
+
+.plan-form { display: inline-flex; align-items: center; gap: 6px; }
+.plan-select {
+    padding: 5px 8px; border: 1px solid #DDD;
+    border-radius: 6px; font-size: 12px; background: white;
+    cursor: pointer;
+}
+.btn-change {
+    padding: 5px 14px; background: #1a237e; color: white;
+    border: none; border-radius: 6px; font-size: 12px;
+    cursor: pointer; font-weight: 600; transition: background 0.15s;
+}
+.btn-change:hover { background: #283593; }
+.btn-delete {
+    padding: 5px 12px; background: #F44336; color: white;
+    border: none; border-radius: 6px; font-size: 12px;
+    cursor: pointer; margin-left: 6px; transition: background 0.15s;
+}
+.btn-delete:hover { background: #D32F2F; }
+
+.flash-container { position: fixed; top: 16px; right: 16px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+.flash { padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.flash-success { background: #E8F5E9; color: #2E7D32; border-left: 4px solid #4CAF50; }
+.flash-error   { background: #FFEBEE; color: #C62828; border-left: 4px solid #F44336; }
+.flash-warning { background: #FFF8E1; color: #F57F17; border-left: 4px solid #FFC107; }
+
+.search-bar {
+    padding: 10px 16px; border: 1px solid #DDD;
+    border-radius: 8px; font-size: 13px; width: 280px;
+    outline: none; margin: 0 24px 16px;
+}
+.search-bar:focus { border-color: #3F51B5; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+
+    <!-- サイドバー -->
+    <div class="admin-sidebar">
+        <div class="admin-sidebar-header">
+            <h1>🛡️ 管理者パネル</h1>
+            <p>茨城県 不動産価格分析</p>
+        </div>
+        <nav class="admin-nav">
+            <a href="{{ url_for('admin_index') }}" class="active">👥 ユーザー管理</a>
+            <a href="{{ url_for('admin_notice') }}">📢 お知らせ編集</a>
+            <a href="{{ url_for('admin_pages') }}">📄 ページ設定</a>
+            <a href="{{ url_for('dashboard') }}">🏠 サイトへ戻る</a>
+        </nav>
+        <div class="admin-sidebar-footer">管理者専用画面</div>
+    </div>
+
+    <!-- メイン -->
+    <div class="admin-main">
+        <div class="admin-topbar">
+            <h2>👥 ユーザー管理</h2>
+            <a href="{{ url_for('dashboard') }}">← サイトへ戻る</a>
+        </div>
+
+        <div class="admin-content">
+
+            <!-- 統計 -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-label">総ユーザー数</div>
+                    <div class="stat-value">{{ total }}<span>人</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">プレミアム会員</div>
+                    <div class="stat-value" style="color:#B8860B;">{{ premium }}<span>人</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">無料会員</div>
+                    <div class="stat-value" style="color:#666;">{{ free }}<span>人</span></div>
+                </div>
+            </div>
+
+            <!-- ユーザー一覧 -->
+            <div class="card">
+                <div class="card-header">
+                    👥 ユーザー一覧
+                </div>
+                <input type="text" class="search-bar" placeholder="🔍 ユーザー名・メールで検索..." id="searchInput" onkeyup="filterTable()" style="margin:16px 24px 0;">
+                <table id="userTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>ユーザー名</th>
+                            <th>メールアドレス</th>
+                            <th>現在のプラン</th>
+                            <th>登録日</th>
+                            <th>プラン変更</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td style="color:#999;">{{ user.id }}</td>
+                            <td style="font-weight:600;">{{ user.username }}</td>
+                            <td style="color:#666;">{{ user.email }}</td>
+                            <td>
+                                <span class="plan-badge plan-{{ user.plan }}">
+                                    {% if user.plan == 'premium' %}⭐ premium
+                                    {% elif user.plan == 'admin' %}🛡️ admin
+                                    {% else %}free{% endif %}
+                                </span>
+                            </td>
+                            <td style="color:#999;">{{ user.created_at.strftime('%Y/%m/%d') }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('admin_change_plan', user_id=user.id) }}" class="plan-form">
+                                    <select name="plan" class="plan-select">
+                                        <option value="free"    {% if user.plan == 'free'    %}selected{% endif %}>free</option>
+                                        <option value="premium" {% if user.plan == 'premium' %}selected{% endif %}>premium</option>
+                                        <option value="admin"   {% if user.plan == 'admin'   %}selected{% endif %}>admin</option>
+                                    </select>
+                                    <button type="submit" class="btn-change">変更</button>
+                                </form>
+                                {% if user.plan != 'admin' %}
+                                <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}"
+                                      style="display:inline;"
+                                      onsubmit="return confirm('{{ user.username }} を削除しますか？');">
+                                    <button type="submit" class="btn-delete">削除</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('#userTable tbody tr').forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

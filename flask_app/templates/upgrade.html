@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}プレミアムにアップグレード | 茨城県 不動産価格分析{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-card" style="max-width:500px;">
+        <div class="auth-header">
+            <div class="auth-logo">⭐</div>
+            <h1>プレミアムプラン</h1>
+            <p>すべての分析機能をご利用いただけます</p>
+        </div>
+
+        <div class="plan-comparison">
+            <div class="plan-row plan-header">
+                <div>機能</div>
+                <div>無料</div>
+                <div>プレミアム</div>
+            </div>
+            <div class="plan-row">
+                <div>価格トレンド</div>
+                <div>✅</div><div>✅</div>
+            </div>
+            <div class="plan-row">
+                <div>築年数と価格</div>
+                <div>✅</div><div>✅</div>
+            </div>
+            <div class="plan-row">
+                <div>間取り別価格</div>
+                <div>✅</div><div>✅</div>
+            </div>
+            <div class="plan-row locked-row">
+                <div>地図（ヒートマップ）</div>
+                <div>🔒</div><div>✅</div>
+            </div>
+            <div class="plan-row locked-row">
+                <div>駅距離と価格</div>
+                <div>🔒</div><div>✅</div>
+            </div>
+            <div class="plan-row locked-row">
+                <div>割安・割高ランキング</div>
+                <div>🔒</div><div>✅</div>
+            </div>
+            <div class="plan-row locked-row">
+                <div>利便性と価格</div>
+                <div>🔒</div><div>✅</div>
+            </div>
+            <div class="plan-row locked-row">
+                <div>浸水リスク別価格</div>
+                <div>🔒</div><div>✅</div>
+            </div>
+            <div class="plan-row locked-row">
+                <div>乖離率推移</div>
+                <div>🔒</div><div>✅</div>
+            </div>
+        </div>
+
+        <div class="price-box">
+            <div class="price">¥980<span>/月</span></div>
+            <p>いつでもキャンセル可能</p>
+        </div>
+
+        <!-- Stripe決済ボタン -->
+        {% if current_user.plan == 'premium' %}
+        <div style="text-align:center; padding:16px; background:#E8F5E9; border-radius:8px; color:#2E7D32; font-weight:600;">
+            ✅ 現在プレミアムプランをご利用中です
+        </div>
+        {% else %}
+        <form action="{{ url_for('stripe_create_checkout') }}" method="POST">
+            <button type="submit" class="btn-primary">
+                ⭐ プレミアムにアップグレード
+            </button>
+        </form>
+        {% endif %}
+
+        <div class="auth-footer">
+            <a href="{{ url_for('dashboard') }}">← ダッシュボードに戻る</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>茨城県 乖離率推移</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #F8F9FA; }
+        .header {
+            background: linear-gradient(135deg, #1a237e, #1565C0);
+            color: white; padding: 20px 28px;
+        }
+        .header h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+        .header p  { font-size: 12px; opacity: 0.75; }
+        .tab-bar {
+            display: flex; background: white;
+            border-bottom: 2px solid #E0E0E0; padding: 0 24px;
+        }
+        .tab-btn {
+            padding: 12px 24px; border: none; background: transparent;
+            font-size: 14px; font-weight: 500; color: #888; cursor: pointer;
+            border-bottom: 3px solid transparent; margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover  { color: #1565C0; }
+        .tab-btn.active { color: #1565C0; border-bottom: 3px solid #1565C0; }
+        .main {
+            display: flex; gap: 0; padding: 16px;
+            min-height: calc(100vh - 160px);
+        }
+        .sidebar {
+            width: 180px; flex-shrink: 0;
+            background: white; border-radius: 10px;
+            padding: 12px; margin-right: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            max-height: 680px; overflow-y: auto;
+        }
+        .sidebar-title {
+            font-size: 12px; font-weight: 700; color: #555;
+            margin-bottom: 8px; padding-bottom: 6px;
+            border-bottom: 1px solid #EEE;
+        }
+        .note {
+            font-size: 10px; color: #999;
+            margin-bottom: 8px; line-height: 1.4;
+        }
+        .ctrl-btns {
+            display: flex; gap: 4px; margin-bottom: 10px;
+        }
+        .ctrl-btn {
+            flex: 1; padding: 5px 0; border: 1px solid #DDD;
+            border-radius: 4px; background: white;
+            font-size: 11px; cursor: pointer; color: #555;
+            transition: all 0.15s;
+        }
+        .ctrl-btn:hover { background: #F0F7FF; border-color: #1565C0; color: #1565C0; }
+        .cb-list { display: none; }
+        .cb-list.active { display: block; }
+        .cb-label {
+            display: flex; align-items: center; gap: 6px;
+            padding: 4px 2px; font-size: 12px; cursor: pointer;
+            border-radius: 4px; transition: background 0.1s;
+        }
+        .cb-label:hover { background: #F5F5F5; }
+        .cb-color { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .city-cb { cursor: pointer; flex-shrink: 0; }
+        .graph-area {
+            flex: 1; background: white; border-radius: 10px;
+            padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .footer {
+            text-align: center; padding: 12px;
+            font-size: 11px; color: #AAA;
+            border-top: 1px solid #EEE; margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>📊 茨城県 年別 乖離率推移（公示地点500m以内）</h1>
+    <p>乖離率 = (土地代㎡単価 - 公示地価㎡単価) / 公示地価㎡単価 × 100　※建物価値は減価償却で算出</p>
+</div>
+
+<div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('mansion', this)">🏢 中古マンション</button>
+    <button class="tab-btn"        onclick="switchTab('land', this)">🏠 宅地（土地と建物）</button>
+</div>
+
+<div class="main">
+    <div class="sidebar">
+        <div class="sidebar-title">📍 市区町村を選択</div>
+        <div class="note">※公示地点500m以内の<br>データのみ表示</div>
+        <div class="ctrl-btns">
+            <button class="ctrl-btn" onclick="selectAll(true)">全選択</button>
+            <button class="ctrl-btn" onclick="selectAll(false)">全解除</button>
+        </div>
+        <div id="cb-mansion" class="cb-list active">
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="つくばみらい市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#3498DB"></span>
+            つくばみらい市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="つくば市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#2ECC71"></span>
+            つくば市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="ひたちなか市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#F39C12"></span>
+            ひたちなか市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="取手市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#34495E"></span>
+            取手市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="古河市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#E91E63"></span>
+            古河市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="土浦市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#00BCD4"></span>
+            土浦市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="守谷市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#FF5722"></span>
+            守谷市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="日立市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#009688"></span>
+            日立市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="水戸市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#03A9F4"></span>
+            水戸市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="牛久市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#546E7A"></span>
+            牛久市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="龍ケ崎市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#6D4C41"></span>
+            龍ケ崎市
+        </label></div>
+        <div id="cb-land"    class="cb-list">
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="かすみがうら市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#E74C3C"></span>
+            かすみがうら市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="つくばみらい市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#3498DB"></span>
+            つくばみらい市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="つくば市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#2ECC71"></span>
+            つくば市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="ひたちなか市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#F39C12"></span>
+            ひたちなか市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="下妻市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#9B59B6"></span>
+            下妻市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="北相馬郡利根町" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#1ABC9C"></span>
+            北相馬郡利根町
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="北茨城市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#E67E22"></span>
+            北茨城市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="取手市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#34495E"></span>
+            取手市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="古河市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#E91E63"></span>
+            古河市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="土浦市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#00BCD4"></span>
+            土浦市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="坂東市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#8BC34A"></span>
+            坂東市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="守谷市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#FF5722"></span>
+            守谷市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="小美玉市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#607D8B"></span>
+            小美玉市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="常総市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#795548"></span>
+            常総市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="常陸大宮市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#FF9800"></span>
+            常陸大宮市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="常陸太田市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#673AB7"></span>
+            常陸太田市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="日立市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#009688"></span>
+            日立市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="東茨城郡城里町" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#2196F3"></span>
+            東茨城郡城里町
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="東茨城郡大洗町" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#4CAF50"></span>
+            東茨城郡大洗町
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="東茨城郡茨城町" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#FFC107"></span>
+            東茨城郡茨城町
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="桜川市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#9C27B0"></span>
+            桜川市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="水戸市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#03A9F4"></span>
+            水戸市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="潮来市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#8D6E63"></span>
+            潮来市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="牛久市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#546E7A"></span>
+            牛久市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="猿島郡五霞町" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#CDDC39"></span>
+            猿島郡五霞町
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="猿島郡境町" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#FF4081"></span>
+            猿島郡境町
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="石岡市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#00E5FF"></span>
+            石岡市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="神栖市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#FF6D00"></span>
+            神栖市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="稲敷郡河内町" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#304FFE"></span>
+            稲敷郡河内町
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="稲敷郡阿見町" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#00BFA5"></span>
+            稲敷郡阿見町
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="笠間市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#D50000"></span>
+            笠間市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="筑西市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#0091EA"></span>
+            筑西市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="結城市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#00C853"></span>
+            結城市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="結城郡八千代町" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#AA00FF"></span>
+            結城郡八千代町
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="行方市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#C51162"></span>
+            行方市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="那珂市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#2962FF"></span>
+            那珂市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="那珂郡東海村" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#00B8D4"></span>
+            那珂郡東海村
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="高萩市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#64DD17"></span>
+            高萩市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="鹿嶋市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#FFAB00"></span>
+            鹿嶋市
+        </label>
+        <label class="cb-label">
+            <input type="checkbox" class="city-cb" value="龍ケ崎市" checked onchange="updateGraph()">
+            <span class="cb-color" style="background:#6D4C41"></span>
+            龍ケ崎市
+        </label></div>
+    </div>
+
+    <div class="graph-area">
+        <div id="graph" style="width:100%; height:640px;"></div>
+    </div>
+</div>
+
+<div class="footer">
+    このサービスは、国土交通省不動産情報ライブラリのAPI機能を使用していますが、
+    提供情報の最新性・正確性・完全性等が保証されたものではありません。
+</div>
+
+<script>
+const DATA_M     = {"つくばみらい市": {"x": [2025], "y": [-34.2], "count": [3], "land": [387.4], "lp_price": [78500.0]}, "つくば市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [14.7, 58.8, 47.6, 88.3, 129.0, 89.6], "count": [6, 14, 8, 8, 12, 11], "land": [853.0, 1453.5, 1088.5, 1308.3, 1939.0, 1357.5], "lp_price": [99100.0, 99429.0, 98200.0, 88600.0, 91783.0, 91973.0]}, "ひたちなか市": {"x": [2020, 2021, 2022, 2023, 2024], "y": [136.3, 307.7, 109.6, 141.0, 123.6], "count": [6, 5, 10, 4, 4], "land": [554.3, 706.6, 493.6, 555.4, 510.3], "lp_price": [31467.0, 22000.0, 26460.0, 34200.0, 27400.0]}, "取手市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [-5.9, 9.4, 28.2, 37.1, 56.4, 54.7], "count": [24, 63, 57, 61, 66, 74], "land": [420.1, 474.9, 559.3, 551.7, 658.2, 612.5], "lp_price": [65958.0, 61968.0, 58872.0, 57375.0, 57565.0, 53135.0]}, "古河市": {"x": [2021, 2022, 2023, 2024, 2025], "y": [27.4, 108.1, 64.9, 89.9, 35.9], "count": [14, 19, 18, 13, 18], "land": [522.5, 897.8, 732.0, 863.2, 596.2], "lp_price": [56679.0, 58768.0, 60461.0, 59108.0, 58689.0]}, "土浦市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [40.8, 69.6, 18.9, 152.2, 93.5, 126.6], "count": [13, 10, 18, 19, 18, 24], "land": [514.8, 698.4, 453.7, 1078.0, 818.0, 939.4], "lp_price": [45362.0, 54010.0, 48206.0, 55642.0, 51211.0, 52113.0]}, "守谷市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [92.4, 70.0, 65.7, 100.6, 114.1, 105.7], "count": [11, 27, 20, 24, 22, 21], "land": [1694.6, 1699.6, 1839.0, 1978.8, 2513.6, 2421.8], "lp_price": [120091.0, 130778.0, 135000.0, 121500.0, 149364.0, 146714.0]}, "日立市": {"x": [2020, 2021, 2022, 2023, 2025], "y": [128.1, 68.4, -6.1, 85.0, 218.2], "count": [6, 10, 7, 8, 6], "land": [824.0, 510.5, 264.6, 566.9, 1063.2], "lp_price": [46450.0, 46460.0, 43357.0, 45338.0, 44300.0]}, "水戸市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [34.9, 23.1, 64.4, 85.8, 94.1, 73.9], "count": [31, 43, 50, 56, 39, 42], "land": [566.4, 534.8, 935.3, 913.5, 1025.4, 764.8], "lp_price": [68410.0, 65114.0, 73800.0, 66689.0, 69913.0, 68993.0]}, "牛久市": {"x": [2022, 2023, 2025], "y": [232.2, 285.8, 145.6], "count": [4, 7, 5], "land": [898.5, 1152.7, 686.8], "lp_price": [45100.0, 45757.0, 39600.0]}, "龍ケ崎市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [-72.8, -57.9, -11.8, -36.7, -32.9, -33.5], "count": [3, 6, 10, 9, 5, 11], "land": [85.0, 143.3, 355.3, 259.2, 282.3, 259.0], "lp_price": [63100.0, 63100.0, 63100.0, 63100.0, 63100.0, 63100.0]}};
+const DATA_L     = {"かすみがうら市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [-23.3, 9.3, 28.9, -15.0, 18.6, 77.7], "count": [11, 10, 10, 5, 10, 3], "land": [663.5, 747.5, 1023.6, 896.6, 907.4, 1128.7], "lp_price": [32464.0, 32160.0, 32320.0, 32080.0, 31840.0, 33200.0]}, "つくばみらい市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [21.9, 13.8, 41.6, 91.1, 40.8, 100.7], "count": [16, 36, 24, 19, 31, 32], "land": [1178.5, 1424.7, 1134.6, 9203.8, 1561.6, 1743.1], "lp_price": [53663.0, 50331.0, 38417.0, 42426.0, 42142.0, 43091.0]}, "つくば市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [16.7, 45.5, 90.8, 35.4, 41.1, 86.4], "count": [22, 35, 31, 26, 27, 20], "land": [2470.0, 3634.6, 3495.2, 3343.3, 3602.4, 5674.5], "lp_price": [61005.0, 68251.0, 76710.0, 58808.0, 64837.0, 76080.0]}, "ひたちなか市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [63.6, 68.6, 40.8, 41.4, 34.3, 166.8], "count": [34, 43, 57, 54, 53, 49], "land": [1336.5, 1373.0, 1422.7, 1460.9, 1328.4, 10158.8], "lp_price": [36206.0, 35137.0, 34505.0, 34459.0, 36077.0, 34776.0]}, "下妻市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [-40.5, 51.3, -16.6, 21.4, 15.8, 24.7], "count": [13, 8, 9, 7, 6, 7], "land": [671.8, 1408.7, 844.3, 1015.3, 732.2, 1302.3], "lp_price": [35000.0, 29725.0, 33400.0, 31429.0, 27733.0, 30543.0]}, "北相馬郡利根町": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [5.2, 36.3, -0.8, -15.3, 25.5, 36.4], "count": [12, 14, 18, 18, 14, 17], "land": [377.6, 770.6, 294.3, 279.5, 498.2, 429.1], "lp_price": [18025.0, 17657.0, 17478.0, 17300.0, 17164.0, 17076.0]}, "北茨城市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [-3.4, -6.9, -5.9, 4.5, -45.9, -22.3], "count": [6, 18, 7, 14, 6, 5], "land": [1430.2, 737.2, 1080.7, 865.3, 421.2, 617.8], "lp_price": [33583.0, 30633.0, 29443.0, 28043.0, 24867.0, 27700.0]}, "取手市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [-7.6, 51.2, 52.2, 47.9, 67.8, 56.6], "count": [67, 90, 97, 84, 77, 97], "land": [985.8, 1196.8, 1343.1, 1000.3, 1980.7, 1189.8], "lp_price": [49599.0, 49019.0, 45135.0, 43439.0, 51635.0, 48149.0]}, "古河市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [52.8, 16.8, 36.3, 18.1, -22.6, 20.1], "count": [18, 55, 84, 92, 96, 91], "land": [830.9, 940.6, 1037.4, 983.0, 731.3, 964.6], "lp_price": [29372.0, 35682.0, 35282.0, 37300.0, 37896.0, 34519.0]}, "土浦市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [15.8, 12.8, 71.5, 19.0, 13.6, 30.4], "count": [95, 123, 74, 87, 110, 125], "land": [1944.0, 1064.0, 2908.3, 1300.7, 1200.5, 1321.0], "lp_price": [36021.0, 35049.0, 34885.0, 34054.0, 34676.0, 35746.0]}, "坂東市": {"x": [2021, 2022, 2023, 2024, 2025], "y": [-12.5, -10.5, -37.1, 32.8, 4.9], "count": [12, 15, 3, 13, 18], "land": [1161.2, 950.1, 574.5, 875.3, 578.8], "lp_price": [30067.0, 22987.0, 27300.0, 23908.0, 23189.0]}, "守谷市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [13.2, 12.1, 58.0, 75.1, 69.1, 61.0], "count": [32, 40, 56, 35, 50, 45], "land": [1651.4, 2159.0, 3922.2, 3131.1, 2604.1, 2520.7], "lp_price": [86878.0, 86165.0, 94738.0, 85794.0, 87092.0, 87020.0]}, "小美玉市": {"x": [2023], "y": [1.1], "count": [3], "land": [495.1], "lp_price": [17267.0]}, "常総市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [-54.6, -19.3, 20.1, -2.6, 21.0, 52.2], "count": [8, 13, 12, 19, 14, 10], "land": [529.4, 794.9, 808.3, 793.8, 1743.2, 854.0], "lp_price": [31063.0, 29385.0, 28075.0, 26368.0, 26800.0, 24250.0]}, "常陸大宮市": {"x": [2020, 2021, 2022, 2024], "y": [55.7, 4.6, 317.0, 78.8], "count": [3, 7, 3, 4], "land": [821.7, 626.8, 1092.1, 1239.3], "lp_price": [24500.0, 21686.0, 21533.0, 19275.0]}, "常陸太田市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [-18.7, -57.6, -29.8, -23.9, -39.1, 16.5], "count": [6, 4, 5, 3, 3, 7], "land": [739.8, 522.5, 404.0, 1314.6, 501.0, 721.9], "lp_price": [29633.0, 24775.0, 22880.0, 27500.0, 26900.0, 22057.0]}, "日立市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [44.7, 12.3, 5.8, 7.2, -10.9, -16.7], "count": [38, 76, 67, 41, 53, 55], "land": [1670.7, 911.9, 843.3, 1018.4, 920.7, 844.2], "lp_price": [38038.0, 36499.0, 35249.0, 38124.0, 36840.0, 35697.0]}, "東茨城郡城里町": {"x": [2020, 2022, 2023], "y": [-41.5, -42.5, -35.4], "count": [4, 5, 4], "land": [942.4, 266.0, 557.4], "lp_price": [25600.0, 21800.0, 20800.0]}, "東茨城郡大洗町": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [-17.8, -56.5, -30.0, 44.8, 97.2, 225.6], "count": [5, 10, 6, 7, 7, 8], "land": [608.0, 395.4, 451.9, 1489.8, 1228.8, 2753.4], "lp_price": [36500.0, 34590.0, 33533.0, 33029.0, 32329.0, 33000.0]}, "東茨城郡茨城町": {"x": [2022, 2024], "y": [25.1, -3.6], "count": [4, 6], "land": [1463.8, 859.4], "lp_price": [24400.0, 24000.0]}, "桜川市": {"x": [2021, 2022, 2023, 2024], "y": [-74.2, 0.4, 41.8, -40.9], "count": [3, 3, 3, 5], "land": [166.6, 868.3, 783.3, 534.2], "lp_price": [29233.0, 33100.0, 10467.0, 22280.0]}, "水戸市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [28.5, 23.4, 14.5, 27.4, 28.9, 29.4], "count": [170, 166, 137, 142, 158, 129], "land": [1464.4, 1405.9, 1382.2, 1864.2, 1826.3, 1413.3], "lp_price": [48195.0, 46911.0, 45509.0, 45167.0, 45932.0, 41747.0]}, "潮来市": {"x": [2021, 2022, 2023, 2024], "y": [1.5, 62.1, 131.5, -35.9], "count": [6, 7, 7, 6], "land": [419.3, 636.0, 1043.2, 612.6], "lp_price": [16283.0, 17629.0, 15550.0, 14043.0]}, "牛久市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [16.9, 15.5, 30.4, 31.0, 36.3, 44.7], "count": [37, 42, 39, 45, 46, 60], "land": [1076.2, 1151.3, 1300.7, 1575.9, 1817.1, 2088.6], "lp_price": [45573.0, 41290.0, 44451.0, 44676.0, 43002.0, 42717.0]}, "猿島郡五霞町": {"x": [2021, 2023, 2024, 2025], "y": [39.7, 8.5, -32.7, -24.3], "count": [5, 6, 8, 8], "land": [784.3, 737.4, 433.2, 522.2], "lp_price": [28800.0, 28400.0, 28300.0, 28200.0]}, "猿島郡境町": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [-19.3, 40.7, 34.7, 34.8, 42.2, -16.2], "count": [5, 11, 12, 11, 9, 9], "land": [666.0, 963.9, 958.2, 1090.9, 923.2, 883.5], "lp_price": [28080.0, 27682.0, 26658.0, 26409.0, 26533.0, 26711.0]}, "石岡市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [3.6, 52.7, 79.2, 8.2, 71.5, 35.5], "count": [25, 20, 24, 33, 26, 30], "land": [770.5, 1048.2, 1584.4, 712.8, 2164.0, 853.1], "lp_price": [23952.0, 22605.0, 21954.0, 22739.0, 22565.0, 21753.0]}, "神栖市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [52.3, 17.1, 5.1, 202.8, 98.8, -24.7], "count": [10, 14, 8, 10, 15, 7], "land": [742.0, 895.6, 554.9, 1119.1, 1416.6, 253.7], "lp_price": [14550.0, 13571.0, 14600.0, 12900.0, 14187.0, 15900.0]}, "稲敷郡河内町": {"x": [2025], "y": [-74.0], "count": [3], "land": [237.3], "lp_price": [10700.0]}, "稲敷郡阿見町": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [24.0, 33.8, 38.8, 40.7, 14.3, 84.8], "count": [18, 14, 18, 15, 6, 17], "land": [1161.3, 867.1, 1033.7, 930.7, 600.4, 1534.4], "lp_price": [28672.0, 27686.0, 27961.0, 27427.0, 28383.0, 32865.0]}, "笠間市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [-47.5, 2.9, 8.3, -1.6, 23.5, -12.7], "count": [18, 16, 17, 8, 19, 16], "land": [494.2, 772.3, 1614.8, 654.8, 953.0, 853.0], "lp_price": [25189.0, 25625.0, 24465.0, 22663.0, 23900.0, 23331.0]}, "筑西市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [23.8, 51.8, 21.5, -39.2, 10.0, 22.5], "count": [24, 26, 23, 34, 36, 20], "land": [1351.7, 934.0, 1001.6, 347.7, 1028.2, 692.4], "lp_price": [25846.0, 27058.0, 28209.0, 26629.0, 27575.0, 28555.0]}, "結城市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [4.3, -2.3, -7.3, -1.4, 0.1, -6.0], "count": [32, 39, 50, 48, 35, 45], "land": [968.3, 1098.7, 996.4, 734.8, 1206.0, 959.4], "lp_price": [35788.0, 35354.0, 34982.0, 34983.0, 35420.0, 34980.0]}, "結城郡八千代町": {"x": [2025], "y": [-21.9], "count": [3], "land": [273.6], "lp_price": [15100.0]}, "行方市": {"x": [2020, 2023], "y": [-61.9, 8.2], "count": [3, 4], "land": [296.3, 376.3], "lp_price": [10200.0, 9700.0]}, "那珂市": {"x": [2021, 2022, 2023], "y": [-44.3, -15.7, 67.2], "count": [3, 4, 6], "land": [323.5, 387.3, 1041.3], "lp_price": [17500.0, 17200.0, 24450.0]}, "那珂郡東海村": {"x": [2020, 2021, 2022, 2023, 2024], "y": [-8.5, 9.2, -28.0, -4.1, -15.6], "count": [5, 6, 8, 10, 11], "land": [3626.9, 2106.2, 814.9, 1413.0, 1403.7], "lp_price": [53020.0, 44300.0, 42400.0, 46600.0, 42236.0]}, "高萩市": {"x": [2020, 2025], "y": [-37.0, -68.3], "count": [4, 3], "land": [263.7, 218.3], "lp_price": [27200.0, 23700.0]}, "鹿嶋市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [61.3, 42.2, 54.9, 34.2, 65.1, 59.7], "count": [15, 20, 19, 12, 24, 22], "land": [829.6, 783.9, 937.6, 703.9, 1081.7, 912.8], "lp_price": [19873.0, 21610.0, 21153.0, 20263.0, 21633.0, 21069.0]}, "龍ケ崎市": {"x": [2020, 2021, 2022, 2023, 2024, 2025], "y": [8.1, 28.1, 56.6, 59.4, 60.3, 35.5], "count": [23, 33, 47, 22, 26, 40], "land": [1428.1, 1126.9, 1124.7, 949.5, 896.3, 999.7], "lp_price": [39878.0, 35136.0, 40191.0, 36191.0, 33400.0, 38963.0]}};
+const COLORS     = ["#E74C3C", "#3498DB", "#2ECC71", "#F39C12", "#9B59B6", "#1ABC9C", "#E67E22", "#34495E", "#E91E63", "#00BCD4", "#8BC34A", "#FF5722", "#607D8B", "#795548", "#FF9800", "#673AB7", "#009688", "#2196F3", "#4CAF50", "#FFC107", "#9C27B0", "#03A9F4", "#8D6E63", "#546E7A", "#CDDC39", "#FF4081", "#00E5FF", "#FF6D00", "#304FFE", "#00BFA5", "#D50000", "#0091EA", "#00C853", "#AA00FF", "#C51162", "#2962FF", "#00B8D4", "#64DD17", "#FFAB00", "#6D4C41"];
+const CITIES_M   = ["つくばみらい市", "つくば市", "ひたちなか市", "取手市", "古河市", "土浦市", "守谷市", "日立市", "水戸市", "牛久市", "龍ケ崎市"];
+const CITIES_L   = ["かすみがうら市", "つくばみらい市", "つくば市", "ひたちなか市", "下妻市", "北相馬郡利根町", "北茨城市", "取手市", "古河市", "土浦市", "坂東市", "守谷市", "小美玉市", "常総市", "常陸大宮市", "常陸太田市", "日立市", "東茨城郡城里町", "東茨城郡大洗町", "東茨城郡茨城町", "桜川市", "水戸市", "潮来市", "牛久市", "猿島郡五霞町", "猿島郡境町", "石岡市", "神栖市", "稲敷郡河内町", "稲敷郡阿見町", "笠間市", "筑西市", "結城市", "結城郡八千代町", "行方市", "那珂市", "那珂郡東海村", "高萩市", "鹿嶋市", "龍ケ崎市"];
+const ALL_CITIES = ["かすみがうら市", "つくばみらい市", "つくば市", "ひたちなか市", "下妻市", "北相馬郡利根町", "北茨城市", "取手市", "古河市", "土浦市", "坂東市", "守谷市", "小美玉市", "常総市", "常陸大宮市", "常陸太田市", "日立市", "東茨城郡城里町", "東茨城郡大洗町", "東茨城郡茨城町", "桜川市", "水戸市", "潮来市", "牛久市", "猿島郡五霞町", "猿島郡境町", "石岡市", "神栖市", "稲敷郡河内町", "稲敷郡阿見町", "笠間市", "筑西市", "結城市", "結城郡八千代町", "行方市", "那珂市", "那珂郡東海村", "高萩市", "鹿嶋市", "龍ケ崎市"];
+
+let currentTab = 'mansion';
+
+function getCheckedCities() {
+    const listId = currentTab === 'mansion' ? 'cb-mansion' : 'cb-land';
+    return Array.from(
+        document.querySelectorAll(`#${listId} .city-cb:checked`)
+    ).map(cb => cb.value);
+}
+
+function updateGraph() {
+    const checked = getCheckedCities();
+    const data    = currentTab === 'mansion' ? DATA_M : DATA_L;
+    const cities  = currentTab === 'mansion' ? CITIES_M : CITIES_L;
+    const title   = currentTab === 'mansion'
+        ? '茨城県 中古マンション 年別乖離率推移（公示地点500m以内）'
+        : '茨城県 宅地（土地と建物） 年別乖離率推移（公示地点500m以内）';
+
+    const traces = [];
+    cities.forEach(city => {
+        if (!checked.includes(city) || !data[city]) return;
+        const colorIdx = ALL_CITIES.indexOf(city);
+        const color    = COLORS[colorIdx % COLORS.length];
+
+        traces.push({
+            x: data[city].x,
+            y: data[city].y,
+            name: city,
+            mode: 'lines+markers',
+            line: { color: color, width: 2 },
+            marker: { size: 7, color: color },
+            hovertemplate: data[city].x.map((yr, i) =>
+                `<b>${city}</b><br>` +
+                `年: ${yr}年<br>` +
+                `乖離率: ${data[city].y[i]}%<br>` +
+                `平均土地代: ${data[city].land[i]}万円<br>` +
+                `公示地価: ${data[city].lp_price[i] ? data[city].lp_price[i].toLocaleString() : '-'}円/㎡<br>` +
+                `件数: ${data[city].count[i]}件<extra></extra>`
+            ),
+        });
+    });
+
+    // ゼロライン（基準線）
+    const allYears = [2020, 2021, 2022, 2023, 2024, 2025];
+
+    Plotly.react('graph', traces, {
+        title: { text: title, font: { size: 16 }, x: 0.5, xanchor: 'center' },
+        xaxis: {
+            title: '年',
+            tickmode: 'linear', tick0: 2020, dtick: 1,
+            gridcolor: '#EEEEEE',
+        },
+        yaxis: {
+            title: '乖離率（%）',
+            gridcolor: '#EEEEEE',
+            zeroline: true,
+            zerolinecolor: '#999',
+            zerolinewidth: 2,
+        },
+        hovermode: 'x unified',
+        showlegend: false,
+        plot_bgcolor: 'white',
+        paper_bgcolor: 'white',
+        margin: { l:70, r:20, t:70, b:60 },
+        shapes: [{
+            type: 'line',
+            x0: 2019.5, x1: 2025.5,
+            y0: 0, y1: 0,
+            line: { color: '#999', width: 1.5, dash: 'dash' }
+        }],
+        annotations: [{
+            x: 2019.6, y: 0,
+            text: '← 割安  割高 →',
+            showarrow: false,
+            font: { size: 10, color: '#999' },
+            xanchor: 'left', yanchor: 'bottom',
+        }],
+    });
+}
+
+function switchTab(tab, btn) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.cb-list').forEach(el => el.classList.remove('active'));
+    document.getElementById('cb-' + tab).classList.add('active');
+    updateGraph();
+}
+
+function selectAll(checked) {
+    const listId = currentTab === 'mansion' ? 'cb-mansion' : 'cb-land';
+    document.querySelectorAll(`#${listId} .city-cb`).forEach(cb => cb.checked = checked);
+    updateGraph();
+}
+
+updateGraph();
+</script>
+</body>
+</html>

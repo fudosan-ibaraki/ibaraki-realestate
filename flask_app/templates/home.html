@@ -1,0 +1,70 @@
+<div class="home-page">
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-label">取引件数（総計）</div>
+            <div class="stat-value">22,737<span class="stat-unit">件</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">対象期間</div>
+            <div class="stat-value">2020<span class="stat-unit">〜2025年</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">対象市区町村</div>
+            <div class="stat-value">44<span class="stat-unit">市区町村</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">地価公示地点</div>
+            <div class="stat-value">676<span class="stat-unit">地点</span></div>
+        </div>
+    </div>
+
+    <div class="section-title">📌 分析メニュー</div>
+    <div class="home-grid">
+        {% for page_id, info in pages.items() %}
+        {% if page_id != "home" %}
+        <a href="{{ url_for('dashboard', page=page_id) }}"
+           class="home-card {% if info.plan == 'premium' and current_user.plan != 'premium' %}home-card-locked{% endif %}">
+            <div class="home-card-icon">{{ info.icon }}</div>
+            <div class="home-card-title">
+                {{ info.title }}
+                {% if info.plan == 'premium' and current_user.plan != 'premium' %}
+                <span class="lock-badge">🔒</span>
+                {% endif %}
+            </div>
+            <div class="home-card-desc">
+                {% if page_id == "guide" %}データの出典・各指標の計算方法・免責事項をまとめています。
+                {% elif page_id == "map" %}価格ヒートマップ・割安割高・浸水リスク・駅・施設を地図で確認できます。
+                {% elif page_id == "g01" %}市区町村別の年別平均価格推移を折れ線グラフで確認できます。
+                {% elif page_id == "g02" %}築年数ごとの平均価格・㎡単価の変化を棒グラフで確認できます。
+                {% elif page_id == "g03" %}最寄り駅からの距離帯ごとの平均価格を棒グラフで確認できます。
+                {% elif page_id == "g04" %}マンションの間取り別の取引件数割合・平均価格を円グラフで確認できます。
+                {% elif page_id == "g05" %}地区別の相対スコアから割安・割高エリアをランキング形式で確認できます。
+                {% elif page_id == "g06" %}コンビニ・スーパー・病院などの施設充実度と価格の関係を確認できます。
+                {% elif page_id == "g07" %}洪水浸水リスク別の取引価格分布を箱ひげ図で確認できます。
+                {% elif page_id == "g08" %}公示地価と取引価格（土地代）の乖離率の年別推移を確認できます。
+                {% endif %}
+            </div>
+        </a>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    {% if current_user.plan != "premium" %}
+    <div class="upgrade-banner">
+        <div class="upgrade-banner-text">
+            🔒 <strong>プレミアムプランで全機能を解放</strong>
+            — 地図・駅距離分析・割安割高ランキング・乖離率推移など7つの高度な分析が使えます
+        </div>
+        <a href="{{ url_for('upgrade') }}" class="upgrade-banner-btn">
+            ⭐ アップグレード ¥980/月
+        </a>
+    </div>
+    {% endif %}
+
+    <div class="section-title" style="margin-top:24px;">⚠️ 免責事項</div>
+    <p class="disclaimer">
+        このサービスは、国土交通省不動産情報ライブラリのAPI機能を使用していますが、提供情報の最新性、正確性、完全性等が保証されたものではありません。
+        乖離率は建物の減価償却を概算で計算したものであり、参考指標としてご利用ください。
+        不動産の購入・投資判断は専門家にご相談の上、ご自身の責任においてご判断ください。
+    </p>
+</div>

@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>エリアレポート</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', sans-serif; background: #F8F9FA; }
+        .header {
+            background: linear-gradient(135deg, #1a237e, #1565C0);
+            color: white; padding: 20px 28px;
+        }
+        .header h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+        .header p  { font-size: 12px; opacity: 0.75; }
+
+        .controls {
+            background: white; padding: 16px 24px;
+            border-bottom: 1px solid #E0E0E0;
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        }
+        .controls label { font-size: 13px; font-weight: 600; color: #555; }
+        .controls select {
+            padding: 8px 12px; border: 1px solid #DDD; border-radius: 6px;
+            font-size: 14px; color: #333; min-width: 200px; cursor: pointer;
+            background: white;
+        }
+        .controls select:focus { outline: none; border-color: #1565C0; }
+        .gen-btn {
+            padding: 9px 22px; background: #1565C0; color: white;
+            border: none; border-radius: 6px; font-size: 14px;
+            font-weight: 600; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .gen-btn:hover:not(:disabled) { background: #0d47a1; }
+        .gen-btn:disabled { background: #90A4AE; cursor: not-allowed; }
+        .gen-btn .spinner {
+            width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4);
+            border-top-color: white; border-radius: 50%;
+            animation: spin 0.8s linear infinite; display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .main { padding: 20px 24px; max-width: 960px; margin: 0 auto; }
+
+        /* スコアカード */
+        .score-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 12px; margin-bottom: 20px;
+        }
+        .score-card {
+            background: white; border-radius: 10px; padding: 14px 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); text-align: center;
+        }
+        .score-card .label { font-size: 11px; color: #888; margin-bottom: 6px; }
+        .score-card .value { font-size: 22px; font-weight: 700; color: #1565C0; }
+        .score-card .unit  { font-size: 11px; color: #AAA; margin-left: 2px; }
+        .score-card .sub   { font-size: 11px; color: #999; margin-top: 4px; }
+
+        /* レポート本文 */
+        .report-box {
+            background: white; border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            padding: 28px 32px; margin-bottom: 20px;
+            min-height: 200px;
+        }
+        .report-box .report-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 18px; padding-bottom: 14px;
+            border-bottom: 2px solid #E8EAF6;
+        }
+        .report-box .report-title { font-size: 17px; font-weight: 700; color: #1a237e; }
+        .report-box .report-badge {
+            background: #E8EAF6; color: #3949AB; font-size: 11px;
+            font-weight: 600; padding: 4px 10px; border-radius: 20px;
+        }
+        .report-body {
+            font-size: 14px; line-height: 1.85; color: #333;
+            white-space: pre-wrap; word-break: break-all;
+        }
+        .report-body.streaming::after {
+            content: '▍'; animation: blink 0.8s step-end infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .placeholder {
+            color: #BDBDBD; font-size: 14px; text-align: center;
+            padding: 48px 0;
+        }
+        .placeholder .icon { font-size: 36px; margin-bottom: 10px; }
+
+        /* データタグ */
+        .data-tags {
+            display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;
+        }
+        .tag {
+            background: #E3F2FD; color: #1565C0; font-size: 12px;
+            padding: 4px 10px; border-radius: 12px; font-weight: 500;
+        }
+        .tag.warn  { background: #FFF3E0; color: #E65100; }
+        .tag.good  { background: #E8F5E9; color: #2E7D32; }
+        .tag.neutral { background: #F3E5F5; color: #6A1B9A; }
+
+        /* コピーボタン */
+        .copy-btn {
+            padding: 7px 16px; background: white; color: #555;
+            border: 1px solid #DDD; border-radius: 6px;
+            font-size: 12px; cursor: pointer; transition: all 0.2s;
+        }
+        .copy-btn:hover { background: #F5F5F5; }
+
+        .error-msg {
+            background: #FFEBEE; color: #C62828; border-radius: 8px;
+            padding: 14px 18px; font-size: 13px; margin-bottom: 16px;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>📝 エリアレポート</h1>
+    <p>市区町村ごとの不動産市場を総合評価・AI解説します</p>
+</div>
+
+<div class="controls">
+    <label for="city-select">市区町村を選択</label>
+    <select id="city-select">
+        <option value="">-- 選択してください --</option>
+    </select>
+    <button class="gen-btn" id="gen-btn" onclick="generateReport()">
+        <span class="spinner" id="spinner"></span>
+        <span id="btn-text">レポートを生成</span>
+    </button>
+</div>
+
+<div class="main">
+    <div id="error-area" class="error-msg hidden"></div>
+    <div id="score-grid" class="score-grid hidden">
+        <div class="score-card">
+            <div class="label">マンション中央値</div>
+            <div class="value" id="sc-mansion">—</div>
+            <div class="sub" id="sc-mansion-sub"></div>
+        </div>
+        <div class="score-card">
+            <div class="label">宅地㎡単価中央値</div>
+            <div class="value" id="sc-land">—</div>
+            <div class="sub" id="sc-land-sub"></div>
+        </div>
+        <div class="score-card">
+            <div class="label">駅距離（平均）</div>
+            <div class="value" id="sc-station">—</div>
+            <div class="unit">m</div>
+        </div>
+        <div class="score-card">
+            <div class="label">取引件数（過去5年）</div>
+            <div class="value" id="sc-count">—</div>
+            <div class="unit">件</div>
+        </div>
+        <div class="score-card">
+            <div class="label">人口</div>
+            <div class="value" id="sc-pop">—</div>
+            <div class="sub" id="sc-pop-sub"></div>
+        </div>
+        <div class="score-card">
+            <div class="label">人口増減率（5年）</div>
+            <div class="value" id="sc-popchange">—</div>
+            <div class="unit">%</div>
+        </div>
+        <div class="score-card">
+            <div class="label">人口密度</div>
+            <div class="value" id="sc-density">—</div>
+            <div class="unit">人/km²</div>
+        </div>
+        <div class="score-card">
+            <div class="label">世帯数</div>
+            <div class="value" id="sc-households">—</div>
+            <div class="unit">世帯</div>
+        </div>
+    </div>
+
+    <div id="tag-area" class="data-tags hidden"></div>
+
+    <div class="report-box">
+        <div class="report-header">
+            <span class="report-title" id="report-title">エリアレポート</span>
+            <button class="copy-btn" id="copy-btn" onclick="copyReport()" style="display:none">📋 コピー</button>
+        </div>
+        <div class="report-body" id="report-body">
+            <div class="placeholder">
+                <div class="icon">🏙️</div>
+                市区町村を選んで「レポートを生成」を押してください。<br>
+                AIがデータを読み解き、約1,000字の解説レポートを生成します。
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── 市区町村リストを取得 ───────────────────────────────────
+async function loadCities() {
+    try {
+        const res = await fetch('/api/city_report_cities', { credentials: 'include' });
+        if (res.status === 401 || res.status === 302 || res.redirected) {
+            showError('セッションが切れています。ページを再読み込みしてください。');
+            return;
+        }
+        if (!res.ok) {
+            showError(`APIエラー: ${res.status}`);
+            return;
+        }
+        const data = await res.json();
+        if (!data.cities || data.cities.length === 0) {
+            showError('市区町村データが見つかりません。');
+            return;
+        }
+        const sel = document.getElementById('city-select');
+        data.cities.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c; opt.textContent = c;
+            sel.appendChild(opt);
+        });
+    } catch (e) {
+        showError('市区町村リストの取得に失敗しました: ' + e.message);
+    }
+}
+
+// ── 数値フォーマット ──────────────────────────────────────
+function fmt(v, unit='万円') {
+    if (v == null || isNaN(v)) return '—';
+    return Math.round(v).toLocaleString() + unit;
+}
+
+// ── タグ生成 ─────────────────────────────────────────────
+function makeTags(d) {
+    const tags = [];
+    if (d.pop_change_rate >= 2)        tags.push({text:`人口増加中(+${d.pop_change_rate.toFixed(1)}%)`, cls:'good'});
+    else if (d.pop_change_rate <= -5)  tags.push({text:`人口減少(${d.pop_change_rate.toFixed(1)}%)`,  cls:'warn'});
+    if (d.pop_density >= 2000)         tags.push({text:'高密度市街地', cls:'neutral'});
+    else if (d.pop_density <= 200)     tags.push({text:'低密度・郊外', cls:'neutral'});
+    else if (d.hazard_safe_pct <= 40) tags.push({text:`浸水リスクあり(${d.hazard_safe_pct}%)`, cls:'warn'});
+
+    if (d.avg_station_dist <= 1000) tags.push({text:'駅近エリア', cls:'good'});
+    else if (d.avg_station_dist >= 3000) tags.push({text:'郊外型エリア', cls:'neutral'});
+
+    if (d.price_trend_pct >= 10) tags.push({text:`価格上昇+${d.price_trend_pct}%`, cls:'good'});
+    else if (d.price_trend_pct <= -5) tags.push({text:`価格下落${d.price_trend_pct}%`, cls:'warn'});
+
+    if (d.avg_conv_score >= 3.5) tags.push({text:'利便性高', cls:'good'});
+    else if (d.avg_conv_score <= 1.5) tags.push({text:'利便性低', cls:'warn'});
+
+    if (d.mansion_count >= 50) tags.push({text:'マンション活発', cls:'neutral'});
+    if (d.land_count >= 100)   tags.push({text:'宅地流通活発',   cls:'neutral'});
+
+    return tags;
+}
+
+// ── メイン：レポート生成 ──────────────────────────────────
+async function generateReport() {
+    const city = document.getElementById('city-select').value;
+    if (!city) { alert('市区町村を選択してください'); return; }
+
+    setLoading(true);
+    hideError();
+
+    try {
+        // Step1: データ取得
+        const res = await fetch('/api/city_report?city_name=' + encodeURIComponent(city));
+        const d = await res.json();
+        if (d.error) { showError(d.error); setLoading(false); return; }
+
+        // スコアカード更新
+        document.getElementById('sc-mansion').textContent     = d.mansion_median ? Math.round(d.mansion_median).toLocaleString() : '—';
+        document.getElementById('sc-mansion-sub').textContent = d.mansion_count ? `${d.mansion_count}件` : '';
+        document.getElementById('sc-land').textContent        = d.land_median_sqm ? Math.round(d.land_median_sqm).toLocaleString() + '円/㎡' : '—';
+        document.getElementById('sc-land-sub').textContent    = d.land_count ? `${d.land_count}件` : '';
+        document.getElementById('sc-station').textContent     = d.avg_station_dist ? Math.round(d.avg_station_dist).toLocaleString() : '—';
+        document.getElementById('sc-count').textContent       = d.total_count ? d.total_count.toLocaleString() : '—';
+        // 人口
+        document.getElementById('sc-pop').textContent        = d.population ? Math.round(d.population/10000*10)/10 + '万' : '—';
+        document.getElementById('sc-pop-sub').textContent    = d.pop_year ? `${d.pop_year}年時点` : '';
+        const chg = d.pop_change_rate;
+        const chgEl = document.getElementById('sc-popchange');
+        chgEl.textContent = chg != null ? (chg >= 0 ? '+' : '') + chg.toFixed(1) : '—';
+        chgEl.style.color = chg != null ? (chg >= 0 ? '#2E7D32' : '#C62828') : '#1565C0';
+        document.getElementById('sc-density').textContent    = d.pop_density ? Math.round(d.pop_density).toLocaleString() : '—';
+        document.getElementById('sc-households').textContent = d.households ? Math.round(d.households/10000*10)/10 + '万' : '—';
+        document.getElementById('score-grid').classList.remove('hidden');
+
+        // タグ
+        const tags = makeTags(d);
+        const tagArea = document.getElementById('tag-area');
+        tagArea.innerHTML = tags.map(t => `<span class="tag ${t.cls}">${t.text}</span>`).join('');
+        tagArea.classList.remove('hidden');
+
+        // Step2: Claude APIでレポート生成（ストリーミング）
+        document.getElementById('report-title').textContent = `📍 ${city} エリアレポート`;
+        document.getElementById('copy-btn').style.display = 'none';
+        const body = document.getElementById('report-body');
+        body.textContent = '';
+        body.classList.add('streaming');
+
+        const prompt = buildPrompt(city, d);
+        await streamClaudeReport(prompt, body);
+
+        body.classList.remove('streaming');
+        document.getElementById('copy-btn').style.display = '';
+    } catch(e) {
+        showError('エラーが発生しました: ' + e.message);
+    }
+    setLoading(false);
+}
+
+function buildPrompt(city, d) {
+    const trendStr = d.price_trend_pct != null
+        ? `過去5年間の価格変動は${d.price_trend_pct > 0 ? '+' : ''}${d.price_trend_pct}%`
+        : '価格トレンドデータなし';
+
+    const hazardStr = d.hazard_safe_pct != null
+        ? `浸水リスク「なし」の取引割合は${d.hazard_safe_pct}%`
+        : '浸水リスクデータなし';
+
+    const stationStr = d.avg_station_dist != null
+        ? `平均駅距離は${Math.round(d.avg_station_dist)}m（最寄り駅上位: ${(d.top_stations||[]).join('、')||'データなし'}）`
+        : '駅距離データなし';
+
+    const convStr = d.avg_conv_score != null
+        ? `平均利便性スコアは${d.avg_conv_score.toFixed(1)}点`
+        : '利便性データなし';
+
+    const mansionStr = d.mansion_median
+        ? `マンション中央値${Math.round(d.mansion_median).toLocaleString()}万円（件数:${d.mansion_count}）`
+        : 'マンション取引少数';
+
+    const landStr = d.land_median_sqm
+        ? `宅地㎡単価中央値${Math.round(d.land_median_sqm).toLocaleString()}円（件数:${d.land_count}）`
+        : '宅地取引少数';
+
+    const ageStr = d.avg_building_age != null
+        ? `平均築年数は約${Math.round(d.avg_building_age)}年`
+        : '';
+
+    const popStr = d.population
+        ? `人口は約${Math.round(d.population/10000*10)/10}万人（${d.pop_year}年）、過去5年の人口増減率は${d.pop_change_rate != null ? (d.pop_change_rate >= 0 ? '+' : '') + d.pop_change_rate.toFixed(1) + '%' : 'データなし'}、人口密度は${d.pop_density ? Math.round(d.pop_density).toLocaleString() : '—'}人/km²`
+        : '人口データなし';
+
+    return `あなたは不動産市場アナリストです。以下の茨城県${city}の不動産市場データをもとに、不動産購入を検討しているエンドユーザー向けの総合エリアレポートを1,000字程度で執筆してください。
+
+【データ】
+- ${mansionStr}
+- ${landStr}
+- ${trendStr}
+- ${stationStr}
+- ${hazardStr}
+- ${convStr}
+- ${ageStr ? ageStr : ''}
+- ${popStr}
+- 総取引件数（過去5年）: ${d.total_count}件
+
+【執筆ルール】
+- 親しみやすく、でも信頼感のある文体で
+- 数値を積極的に引用しながら根拠を示す
+- 「このエリアの特徴」「価格・コスト感」「アクセス・利便性」「安全性・リスク」「おすすめのケース」の順で自然な流れの文章にまとめる
+- 箇条書きは使わず、全て読み物形式の文章で
+- 最後に「このエリアはこんな方におすすめ」で締める
+- 1,000字前後（800〜1,200字の範囲）`;
+}
+
+async function streamClaudeReport(prompt, bodyEl) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1500,
+            stream: true,
+            messages: [{ role: 'user', content: prompt }]
+        })
+    });
+
+    if (!res.ok) {
+        const err = await res.text();
+        throw new Error('Claude API error: ' + err);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const data = line.slice(6).trim();
+            if (data === '[DONE]') return;
+            try {
+                const j = JSON.parse(data);
+                if (j.type === 'content_block_delta' && j.delta?.text) {
+                    bodyEl.textContent += j.delta.text;
+                }
+            } catch (_) {}
+        }
+    }
+}
+
+function setLoading(on) {
+    const btn = document.getElementById('gen-btn');
+    const sp  = document.getElementById('spinner');
+    const txt = document.getElementById('btn-text');
+    btn.disabled = on;
+    sp.style.display  = on ? 'block' : 'none';
+    txt.textContent   = on ? '生成中...' : 'レポートを生成';
+}
+
+function showError(msg) {
+    const el = document.getElementById('error-area');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+}
+function hideError() {
+    document.getElementById('error-area').classList.add('hidden');
+}
+
+function copyReport() {
+    const text = document.getElementById('report-body').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = '✅ コピー済み';
+        setTimeout(() => { btn.textContent = '📋 コピー'; }, 2000);
+    });
+}
+
+loadCities();
+</script>
+</body>
+</html>

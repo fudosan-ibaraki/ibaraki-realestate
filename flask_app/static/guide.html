@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ガイドライン</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', sans-serif;
+            background: #F5F7FA;
+            color: #333;
+            line-height: 1.8;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 32px 24px 64px;
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a237e;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #E8ECF0;
+        }
+
+        /* セクション */
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 28px 32px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #E8ECF0;
+        }
+
+        .section-icon { font-size: 22px; }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1a237e;
+        }
+
+        /* テーブル */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin: 12px 0;
+        }
+
+        th {
+            background: #E8EAF6;
+            color: #1a237e;
+            font-weight: 600;
+            padding: 10px 14px;
+            text-align: left;
+            font-size: 12px;
+        }
+
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #F0F0F0;
+            vertical-align: top;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #FAFAFA; }
+
+        /* 計算式ボックス */
+        .formula {
+            background: #F3F4F8;
+            border-left: 4px solid #3F51B5;
+            border-radius: 0 8px 8px 0;
+            padding: 14px 18px;
+            margin: 12px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #1a237e;
+            line-height: 1.8;
+        }
+
+        /* 注意ボックス */
+        .warning-box {
+            background: #FFF8E1;
+            border-left: 4px solid #FFB300;
+            border-radius: 0 8px 8px 0;
+            padding: 14px 18px;
+            margin: 12px 0;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .info-box {
+            background: #E3F2FD;
+            border-left: 4px solid #1E88E5;
+            border-radius: 0 8px 8px 0;
+            padding: 14px 18px;
+            margin: 12px 0;
+            font-size: 13px;
+            color: #555;
+        }
+
+        /* 段落 */
+        p { font-size: 13px; color: #555; margin-bottom: 10px; }
+        h3 { font-size: 14px; font-weight: 700; color: #333; margin: 18px 0 8px; }
+        ul { padding-left: 20px; font-size: 13px; color: #555; }
+        ul li { margin-bottom: 4px; }
+
+        /* バッジ */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+        .badge-ok  { background: #E8F5E9; color: #2E7D32; }
+        .badge-warn { background: #FFF3E0; color: #E65100; }
+
+        /* フッター */
+        .footer {
+            text-align: center;
+            font-size: 11px;
+            color: #BBB;
+            margin-top: 32px;
+            padding-top: 20px;
+            border-top: 1px solid #E8ECF0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <h1>📋 ガイドライン</h1>
+    <div class="subtitle">
+        データの出典・収集方法、各指標の計算方法、注意事項をまとめています。<br>
+        最終更新: 2025年
+    </div>
+
+    <!-- ① データの出典・収集方法 -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-icon">📂</span>
+            <span class="section-title">データの出典・収集方法</span>
+        </div>
+
+        <table>
+            <tr>
+                <th>データ種別</th>
+                <th>出典</th>
+                <th>収集方法</th>
+                <th>商用利用</th>
+                <th>対象期間</th>
+            </tr>
+            <tr>
+                <td><strong>不動産取引価格</strong></td>
+                <td>国土交通省<br>不動産情報ライブラリ</td>
+                <td>CSVダウンロード</td>
+                <td><span class="badge badge-ok">✅ OK</span></td>
+                <td>2020〜2025年</td>
+            </tr>
+            <tr>
+                <td><strong>地価公示データ</strong></td>
+                <td>国土交通省<br>国土数値情報</td>
+                <td>GeoJSONダウンロード</td>
+                <td><span class="badge badge-ok">✅ OK</span></td>
+                <td>2020〜2026年</td>
+            </tr>
+            <tr>
+                <td><strong>人口データ</strong></td>
+                <td>総務省統計局<br>国勢調査2020</td>
+                <td>Excelダウンロード</td>
+                <td><span class="badge badge-ok">✅ OK</span></td>
+                <td>2020年</td>
+            </tr>
+            <tr>
+                <td><strong>駅・路線データ</strong></td>
+                <td>国土交通省<br>国土数値情報（N02）</td>
+                <td>GeoJSONダウンロード</td>
+                <td><span class="badge badge-ok">✅ OK</span></td>
+                <td>2024年</td>
+            </tr>
+            <tr>
+                <td><strong>ハザードマップ</strong><br>（洪水浸水想定区域）</td>
+                <td>国土交通省<br>国土数値情報（A31）</td>
+                <td>GeoJSONダウンロード</td>
+                <td><span class="badge badge-ok">✅ OK</span></td>
+                <td>2021年</td>
+            </tr>
+            <tr>
+                <td><strong>施設データ</strong><br>（コンビニ・スーパー等）</td>
+                <td>OpenStreetMap</td>
+                <td>osmnxライブラリで取得</td>
+                <td><span class="badge badge-ok">✅ OK</span><br><span style="font-size:11px;color:#999;">クレジット表示必須</span></td>
+                <td>取得時点（最新）</td>
+            </tr>
+            <tr>
+                <td><strong>市区町村境界</strong></td>
+                <td>国土交通省<br>国土数値情報（N03）</td>
+                <td>GeoJSONダウンロード</td>
+                <td><span class="badge badge-ok">✅ OK</span></td>
+                <td>2023年</td>
+            </tr>
+        </table>
+
+        <div class="info-box">
+            📌 取引価格データは国土交通省の不動産取引価格情報をもとにしており、個人が特定されないよう地区名レベルで匿名化されています。番地・号は含まれません。
+        </div>
+    </div>
+
+    <!-- ② 各指標の計算方法 -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-icon">🔢</span>
+            <span class="section-title">各指標の計算方法</span>
+        </div>
+
+        <h3>① 乖離率（土地代ベース）</h3>
+        <p>取引価格から建物価値を差し引いた「土地代」と、最寄りの公示地価を比較した指標です。</p>
+
+        <div class="formula">
+            【建物価値の計算】<br>
+            残存価値率 = MAX(1 - 経過年数 ÷ 法定耐用年数, 0.05)<br>
+            建物価値   = 建物再調達単価（円/㎡）× 延床面積（㎡）× 残存価値率<br><br>
+            【土地代の計算】<br>
+            土地代     = 取引価格 − 建物価値<br>
+            土地代㎡単価 = 土地代 ÷ 土地面積（㎡）<br><br>
+            【乖離率の計算】<br>
+            乖離率（%）= (土地代㎡単価 − 公示地価㎡単価) ÷ 公示地価㎡単価 × 100<br>
+            プラス → 公示地価より割高　　マイナス → 公示地価より割安
+        </div>
+
+        <h3>法定耐用年数・建物再調達単価（参考値）</h3>
+        <table>
+            <tr>
+                <th>構造</th>
+                <th>法定耐用年数</th>
+                <th>再調達単価（2020年）</th>
+                <th>再調達単価（2024年）</th>
+            </tr>
+            <tr>
+                <td>RC造（鉄筋コンクリート）</td>
+                <td>47年</td>
+                <td>22万円/㎡</td>
+                <td>28万円/㎡</td>
+            </tr>
+            <tr>
+                <td>SRC造（鉄骨鉄筋コンクリート）</td>
+                <td>47年</td>
+                <td>25万円/㎡</td>
+                <td>31万円/㎡</td>
+            </tr>
+            <tr>
+                <td>鉄骨造</td>
+                <td>34年</td>
+                <td>16万円/㎡</td>
+                <td>20.5万円/㎡</td>
+            </tr>
+            <tr>
+                <td>木造</td>
+                <td>22年</td>
+                <td>13万円/㎡</td>
+                <td>16.5万円/㎡</td>
+            </tr>
+        </table>
+
+        <div class="warning-box">
+            ⚠️ 再調達単価は建設物価調査会データ等を参考にした概算値です。実際の建築費は物件のグレード・仕様によって大きく異なります。また乖離率は公示地点から<strong>500m以内</strong>のデータのみを有効としています。
+        </div>
+
+        <h3>② 利便性スコア（100点満点）</h3>
+        <p>取引物件周辺の生活施設の充実度を数値化した指標です。</p>
+
+        <div class="formula">
+            利便性スコア = MIN(100,<br>
+            　コンビニ数（500m以内）× 10点<br>
+            　+ スーパー数（500m以内）× 15点<br>
+            　+ 病院・クリニック数（1km以内）× 10点<br>
+            　+ 学校数（1km以内）× 5点<br>
+            　+ 銀行・ATM数（500m以内）× 5点<br>
+            )
+        </div>
+
+        <p>施設データはOpenStreetMapから取得しています。データの網羅性は地域によって異なります。</p>
+
+        <h3>③ 割安・割高スコア（相対スコア）</h3>
+        <p>同じ市区町村内での地区ごとの価格水準を比較した指標です。</p>
+
+        <div class="formula">
+            相対スコア（%）= (地区の平均㎡単価 − 市区町村の平均㎡単価)<br>
+            　　　　　　　　÷ 市区町村の平均㎡単価 × 100<br><br>
+            プラス → 市区町村平均より割高<br>
+            マイナス → 市区町村平均より割安
+        </div>
+
+        <h3>④ 浸水リスク判定</h3>
+        <p>取引物件の座標から最寄りの洪水浸水想定区域までの距離で判定しています。</p>
+        <table>
+            <tr><th>リスク区分</th><th>判定基準</th></tr>
+            <tr><td>🔴 高リスク</td><td>浸水想定区域から100m以内</td></tr>
+            <tr><td>🟠 中リスク</td><td>100m超〜300m以内</td></tr>
+            <tr><td>🟡 低リスク</td><td>300m超〜500m以内</td></tr>
+            <tr><td>🟢 なし</td><td>500m超</td></tr>
+        </table>
+
+        <h3>⑤ 最寄り駅距離</h3>
+        <p>取引物件の座標（地区名をジオコーディングで取得）と駅座標の間のハーバーサイン距離（直線距離）で計算しています。実際の徒歩距離とは異なります。</p>
+
+        <div class="formula">
+            駅距離（m）= ハーバーサイン公式による球面距離計算<br>
+            ※ Google Maps Geocoding APIで地区名を座標に変換しています
+        </div>
+    </div>
+
+    <!-- ③ 注意事項・免責事項 -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-icon">⚠️</span>
+            <span class="section-title">注意事項・免責事項</span>
+        </div>
+
+        <h3>データの精度について</h3>
+        <ul>
+            <li>取引価格データは国土交通省が公表する成約データですが、入力誤りや特殊な取引条件が含まれる場合があります。</li>
+            <li>乖離率の計算に使用する建物再調達単価・法定耐用年数は概算値であり、実際の建物価値とは異なる場合があります。</li>
+            <li>ジオコーディングは地区名レベルで行っているため、物件の正確な位置とは数百メートル〜数キロ程度ずれる場合があります。</li>
+            <li>施設データ（OpenStreetMap）は最新の状況を反映していない場合があります。</li>
+            <li>乖離率は公示地点から500m以内のデータのみを有効としており、それ以外のエリアでは計算対象外となります。</li>
+        </ul>
+
+        <h3 style="margin-top:16px;">投資・購入判断について</h3>
+        <div class="warning-box">
+            ⚠️ 本サービスの分析結果は参考情報です。不動産の購入・投資判断は、必ず不動産の専門家（宅地建物取引士等）にご相談の上、ご自身の責任においてご判断ください。本サービスの情報を利用したことによる損害等について、一切の責任を負いません。
+        </div>
+
+        <h3>クレジット表示</h3>
+        <ul>
+            <li>このサービスは、国土交通省不動産情報ライブラリのAPI機能を使用していますが、提供情報の最新性、正確性、完全性等が保証されたものではありません。</li>
+            <li>地図データ: © OpenStreetMap contributors（ODbLライセンス）</li>
+            <li>地図タイル: 国土地理院（出典：国土地理院）</li>
+            <li>行政区域・地価公示・駅データ・ハザードマップ: 国土交通省 国土数値情報</li>
+            <li>人口データ: 総務省統計局 国勢調査</li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        茨城県 不動産価格分析ダッシュボード　|　データ更新: 2025年
+    </div>
+
+</div>
+</body>
+</html>
