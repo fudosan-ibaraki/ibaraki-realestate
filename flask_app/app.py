@@ -203,6 +203,18 @@ def register():
             return redirect(url_for("dashboard"))
     return render_template("register.html")
 
+# ── app.py に追加するルート ───────────────────────────────
+# @app.route("/logout") の前あたりに追加
+ 
+from datetime import date, datetime  # datetimeはすでにimport済みなので date だけ追加
+ 
+@app.route("/terms")
+def terms():
+    return render_template("terms.html", now=datetime.today())
+ 
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html", now=datetime.today())
 
 @app.route("/logout")
 @login_required
@@ -761,3 +773,6 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
+
+
