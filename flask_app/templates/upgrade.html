@@ -59,18 +59,11 @@
             <p>いつでもキャンセル可能</p>
         </div>
 
-        <!-- Stripe決済ボタン -->
-        {% if current_user.plan == 'premium' %}
-        <div style="text-align:center; padding:16px; background:#E8F5E9; border-radius:8px; color:#2E7D32; font-weight:600;">
-            ✅ 現在プレミアムプランをご利用中です
-        </div>
-        {% else %}
-        <form action="{{ url_for('stripe_create_checkout') }}" method="POST">
+        <form action="/create-checkout-session" method="POST">
             <button type="submit" class="btn-primary">
                 ⭐ プレミアムにアップグレード
             </button>
         </form>
-        {% endif %}
 
         <div class="auth-footer">
             <a href="{{ url_for('dashboard') }}">← ダッシュボードに戻る</a>
