@@ -743,6 +743,17 @@ def api_city_report():
         **pop_data,
     })
 
+@app.route("/admin/clear-stripe-customer/<int:user_id>", methods=["POST"])
+@login_required
+@admin_required
+def clear_stripe_customer(user_id):
+    user = User.query.get_or_404(user_id)
+    user.stripe_customer_id = None
+    user.stripe_subscription_id = None
+    db.session.commit()
+    flash("Stripeカスタマー情報をクリアしました。", "success")
+    return redirect(url_for("admin_index"))
+
 @app.route("/ping")
 def ping():
     return "OK", 200
