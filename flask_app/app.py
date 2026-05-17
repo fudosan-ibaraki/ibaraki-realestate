@@ -739,7 +739,9 @@ def api_city_report():
         **pop_data,
     })
 
-
+@app.route("/ping")
+def ping():
+    return "OK", 200
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
