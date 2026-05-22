@@ -19,6 +19,10 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 db            = SQLAlchemy(app)
 login_manager = LoginManager(app)
+
+# Render等のWSGI環境でもテーブルを自動作成
+with app.app_context():
+    db.create_all()
 login_manager.login_view    = "login"
 login_manager.login_message = "ログインが必要です。"
 
@@ -131,11 +135,15 @@ def dashboard(page="home"):
         return redirect(url_for("upgrade"))
     dynamic_pages = {pid: {**info, "plan": settings[pid]["plan"]} for pid, info in PAGES.items()}
     page_info = dynamic_pages[page]
-    # アクセス記録（admin除外）
+    # アクセス記録（admin除外・別スレッドで実行してレスポンスを遅延させない）
     if current_user.plan != "admin":
-        pv = PageView(page=page, user_id=current_user.id)
-        db.session.add(pv)
-        db.session.commit()
+        user_id = current_user.id
+        def _record():
+            with app.app_context():
+                db.session.add(PageView(page=page, user_id=user_id))
+                db.session.commit()
+        import threading
+        threading.Thread(target=_record, daemon=True).start()
     return render_template("dashboard.html", page=page, pages=dynamic_pages, page_info=page_info)
 
 
