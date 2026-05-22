@@ -49,6 +49,10 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', sans-serif; backgr
 .stat-value { font-size: 32px; font-weight: 700; color: #1a237e; }
 .stat-value span { font-size: 14px; color: #999; margin-left: 4px; }
 
+.pv-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.pv-bar { height: 8px; border-radius: 4px; background: #3F51B5; min-width: 2px; transition: width 0.3s; }
+.pv-num { font-size: 12px; color: #555; white-space: nowrap; }
+
 .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; }
 .card-header {
     padding: 16px 24px; border-bottom: 1px solid #F0F0F0;
@@ -150,6 +154,47 @@ tr:hover td { background: #FAFAFA; }
                     <div class="stat-label">無料会員</div>
                     <div class="stat-value" style="color:#666;">{{ free }}<span>人</span></div>
                 </div>
+            </div>
+
+            <!-- アクセス統計 -->
+            <div class="stats-row" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 20px;">
+                <div class="stat-card">
+                    <div class="stat-label">総ページビュー（累計）</div>
+                    <div class="stat-value">{{ total_pv }}<span>PV</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">ページビュー（直近30日）</div>
+                    <div class="stat-value" style="color:#2E7D32;">{{ total_pv_recent }}<span>PV</span></div>
+                </div>
+            </div>
+            <div class="card" style="margin-bottom:28px;">
+                <div class="card-header">📊 ページ別アクセス数</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ページ</th>
+                            <th style="text-align:right;">累計PV</th>
+                            <th style="text-align:right;">直近30日</th>
+                            <th style="width:40%;">バー</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set max_pv = page_stats[0].total if page_stats else 1 %}
+                        {% for ps in page_stats %}
+                        <tr>
+                            <td>{{ ps.title }}</td>
+                            <td style="text-align:right;font-weight:600;">{{ ps.total }}</td>
+                            <td style="text-align:right;color:#2E7D32;">{{ ps.recent }}</td>
+                            <td>
+                                <div class="pv-bar-wrap">
+                                    <div class="pv-bar" style="width:{{ [(ps.total / max_pv * 200)|int, 2]|max }}px;"></div>
+                                    <span class="pv-num">{{ ps.total }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
 
             <!-- ユーザー一覧 -->

@@ -1,4 +1,4 @@
-﻿from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, Response
+from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
     LoginManager, UserMixin,
@@ -9,10 +9,7 @@ import bcrypt
 import os
 import sqlite3
 import pandas as pd
-import numpy as np
-import pickle
 from datetime import datetime
-import stripe
 
 app = Flask(__name__)
 app.config["SECRET_KEY"]              = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
@@ -27,42 +24,15 @@ login_manager.login_message = "ログインが必要です。"
 
 REALESTATE_DB = os.path.join(os.path.dirname(__file__), "..", "ibaraki_realestate.db")
 
-# ── Stripe設定 ────────────────────────────────────────────
-stripe.api_key            = os.environ.get("STRIPE_SECRET_KEY", "")
-STRIPE_PRICE_ID           = os.environ.get("STRIPE_PRICE_ID", "")
-STRIPE_WEBHOOK_SECRET     = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
-
-# ── Random Forest モデル読み込み（マンション・宅地 別モデル）────
-_RF_MANSION_PATH = os.path.join(os.path.dirname(__file__), "model_rf_mansion.pkl")
-_RF_LAND_PATH    = os.path.join(os.path.dirname(__file__), "model_rf_land.pkl")
-_rf_mansion = None
-_rf_land    = None
-
-def get_rf_mansion():
-    global _rf_mansion
-    if _rf_mansion is None and os.path.exists(_RF_MANSION_PATH):
-        with open(_RF_MANSION_PATH, "rb") as f:
-            _rf_mansion = pickle.load(f)
-    return _rf_mansion
-
-def get_rf_land():
-    global _rf_land
-    if _rf_land is None and os.path.exists(_RF_LAND_PATH):
-        with open(_RF_LAND_PATH, "rb") as f:
-            _rf_land = pickle.load(f)
-    return _rf_land
-
 
 # ── モデル ────────────────────────────────────────────────
 class User(UserMixin, db.Model):
-    id                      = db.Column(db.Integer,     primary_key=True)
-    email                   = db.Column(db.String(120), unique=True, nullable=False)
-    username                = db.Column(db.String(80),  unique=True, nullable=False)
-    password                = db.Column(db.String(200), nullable=False)
-    plan                    = db.Column(db.String(20),  default="free")
-    created_at              = db.Column(db.DateTime,    default=datetime.utcnow)
-    stripe_customer_id      = db.Column(db.String(100), nullable=True)
-    stripe_subscription_id  = db.Column(db.String(100), nullable=True)
+    id         = db.Column(db.Integer,     primary_key=True)
+    email      = db.Column(db.String(120), unique=True, nullable=False)
+    username   = db.Column(db.String(80),  unique=True, nullable=False)
+    password   = db.Column(db.String(200), nullable=False)
+    plan       = db.Column(db.String(20),  default="free")
+    created_at = db.Column(db.DateTime,    default=datetime.utcnow)
 
     def set_password(self, password):
         self.password = bcrypt.hashpw(
@@ -78,6 +48,13 @@ class User(UserMixin, db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+
+class PageView(db.Model):
+    id          = db.Column(db.Integer,  primary_key=True)
+    page        = db.Column(db.String(20), nullable=False, index=True)
+    user_id     = db.Column(db.Integer,  db.ForeignKey("user.id"), nullable=True)
+    accessed_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
 
 # ── ページ定義 ────────────────────────────────────────────
@@ -154,6 +131,11 @@ def dashboard(page="home"):
         return redirect(url_for("upgrade"))
     dynamic_pages = {pid: {**info, "plan": settings[pid]["plan"]} for pid, info in PAGES.items()}
     page_info = dynamic_pages[page]
+    # アクセス記録（admin除外）
+    if current_user.plan != "admin":
+        pv = PageView(page=page, user_id=current_user.id)
+        db.session.add(pv)
+        db.session.commit()
     return render_template("dashboard.html", page=page, pages=dynamic_pages, page_info=page_info)
 
 
@@ -203,18 +185,6 @@ def register():
             return redirect(url_for("dashboard"))
     return render_template("register.html")
 
-# ── app.py に追加するルート ───────────────────────────────
-# @app.route("/logout") の前あたりに追加
- 
-from datetime import date, datetime  # datetimeはすでにimport済みなので date だけ追加
- 
-@app.route("/terms")
-def terms():
-    return render_template("terms.html", now=datetime.today())
- 
-@app.route("/privacy")
-def privacy():
-    return render_template("privacy.html", now=datetime.today())
 
 @app.route("/logout")
 @login_required
@@ -261,10 +231,10 @@ def estimate():
 def api_estimate():
     city_name      = request.args.get("city_name", "")
     trade_type     = request.args.get("trade_type", "")
-    area           = request.args.get("area",           type=float)
-    building_age   = request.args.get("building_age",   type=int)
-    floor_plan     = request.args.get("floor_plan",     "")
-    district       = request.args.get("district",       "")
+    area_min       = request.args.get("area_min",       type=float)
+    area_max       = request.args.get("area_max",       type=float)
+    age_min        = request.args.get("age_min",        type=int)
+    age_max        = request.args.get("age_max",        type=int)
     station_dist   = request.args.get("station_dist",   type=float)
     hazard_risk    = request.args.get("hazard_risk",    "指定なし")
     conv_score_min = request.args.get("conv_score_min", type=float)
@@ -276,16 +246,14 @@ def api_estimate():
         conditions.append("city_name = ?");        params.append(city_name)
     if trade_type:
         conditions.append("trade_type LIKE ?");    params.append("%" + trade_type + "%")
-    if area:
-        # ±40%の範囲で類似物件を検索
-        conditions.append("area BETWEEN ? AND ?"); params.append(area * 0.6); params.append(area * 1.4)
-    if building_age is not None:
-        year = 2025 - building_age
-        conditions.append("building_year BETWEEN ? AND ?"); params.append(year - 8); params.append(year + 8)
-    if floor_plan:
-        conditions.append("floor_plan = ?");       params.append(floor_plan)
-    if district:
-        conditions.append("district = ?");         params.append(district)
+    if area_min:
+        conditions.append("area >= ?");            params.append(area_min)
+    if area_max:
+        conditions.append("area <= ?");            params.append(area_max)
+    if age_min:
+        conditions.append("building_year <= ?");   params.append(2024 - age_min)
+    if age_max:
+        conditions.append("building_year >= ?");   params.append(2024 - age_max)
     if station_dist:
         conditions.append("nearest_station_dist <= ?"); params.append(station_dist)
     if hazard_risk and hazard_risk != "指定なし":
@@ -294,16 +262,10 @@ def api_estimate():
         conditions.append("convenience_score >= ?"); params.append(conv_score_min)
 
     conn = sqlite3.connect(REALESTATE_DB)
-    sql_base = "SELECT trade_price, area, building_year, nearest_station_name, nearest_station_dist, hazard_risk, convenience_score, district, year, floor_plan FROM csv_transactions WHERE "
-
-    df = pd.read_sql(sql_base + " AND ".join(conditions) + " ORDER BY year DESC LIMIT 500", conn, params=params)
-
-    # 件数が少ない場合、地区条件を外してリトライ
-    if len(df) < 10 and district:
-        conditions_fallback = [c for c in conditions if "district" not in c]
-        params_fallback     = [params[i] for i, c in enumerate(conditions) if "district" not in c]
-        df = pd.read_sql(sql_base + " AND ".join(conditions_fallback) + " ORDER BY year DESC LIMIT 500", conn, params=params_fallback)
-
+    df   = pd.read_sql(
+        "SELECT trade_price, area, building_year, nearest_station_name, nearest_station_dist, hazard_risk, convenience_score, district, year, floor_plan FROM csv_transactions WHERE " + " AND ".join(conditions) + " ORDER BY year DESC LIMIT 500",
+        conn, params=params
+    )
     conn.close()
 
     if len(df) == 0:
@@ -339,81 +301,6 @@ def api_estimate():
     })
 
 
-@app.route("/api/estimate_rf")
-@login_required
-def api_estimate_rf():
-    """Random Forest による価格予測（マンション・宅地 別モデル）"""
-    import numpy as np
-
-    trade_type   = request.args.get("trade_type", "").strip()
-    city_name    = request.args.get("city_name",  "").strip()
-    district     = request.args.get("district",   "").strip()
-    floor_plan   = request.args.get("floor_plan", "").strip()
-    area         = request.args.get("area",         type=float)
-    building_age = request.args.get("building_age", type=int)
-    station_dist = request.args.get("station_dist", type=float)
-    hazard_risk  = request.args.get("hazard_risk",  "不明")
-    conv_score   = request.args.get("conv_score",   type=float)
-
-    if not all([city_name, trade_type, area]):
-        return jsonify({"error": "city_name, trade_type, area は必須です。"}), 400
-
-    is_mansion = "マンション" in trade_type
-
-    if is_mansion:
-        bundle = get_rf_mansion()
-    else:
-        bundle = get_rf_land()
-
-    if bundle is None:
-        return jsonify({"error": "モデルが未学習です。train_model.py を実行してください。"}), 503
-
-    def safe_enc(le, val):
-        val = val if (val and val in le.classes_) else le.classes_[0]
-        return int(le.transform([val])[0])
-
-    city_enc     = safe_enc(bundle["le_city"],     city_name)
-    district_enc = safe_enc(bundle["le_district"],  district or "不明")
-    hazard_enc   = safe_enc(bundle["le_hazard"],    hazard_risk or "不明")
-
-    age  = building_age if building_age is not None else 20
-    dist = station_dist if station_dist is not None else 1500
-    conv = conv_score   if conv_score   is not None else 30
-
-    if is_mansion:
-        floor_enc = safe_enc(bundle["le_floor"], floor_plan or "不明")
-        X = np.array([[city_enc, district_enc, floor_enc, area, age, dist, hazard_enc, conv]])
-    else:
-        X = np.array([[city_enc, district_enc, area, dist, hazard_enc, conv]])
-
-    model    = bundle["model"]
-    log_pred = model.predict(X)[0]
-
-    # 宅地は㎡単価モデル → 総額に変換
-    if bundle.get("predict_sqm") and not is_mansion:
-        sqm_pred  = float(np.expm1(log_pred))
-        predicted = sqm_pred * area
-        tree_sqm  = np.expm1([t.predict(X)[0] for t in model.estimators_])
-        std       = float(np.std(tree_sqm)) * area
-    else:
-        predicted  = float(np.expm1(log_pred))
-        tree_preds = np.expm1([t.predict(X)[0] for t in model.estimators_])
-        std        = float(np.std(tree_preds))
-
-    return jsonify({
-        "predicted_man": round(predicted / 10000, 1),
-        "lower_man":     round(max(0, predicted - std) / 10000, 1),
-        "upper_man":     round((predicted + std) / 10000, 1),
-        "city_name":     city_name,
-        "trade_type":    trade_type,
-        "area":          area,
-        "building_age":  age,
-        "station_dist":  dist,
-        "hazard_risk":   hazard_risk,
-        "conv_score":    conv,
-    })
-
-
 # ── 管理者ルート ──────────────────────────────────────────
 @app.route("/admin")
 @login_required
@@ -423,8 +310,38 @@ def admin_index():
     total   = len(users)
     premium = sum(1 for u in users if u.plan == "premium")
     free    = sum(1 for u in users if u.plan == "free")
+
+    # アクセス集計（ページ別総数 & 直近30日）
+    from sqlalchemy import func, text
+    from datetime import timedelta
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+
+    pv_total = db.session.query(
+        PageView.page, func.count(PageView.id).label("cnt")
+    ).group_by(PageView.page).all()
+    pv_total_dict = {row.page: row.cnt for row in pv_total}
+
+    pv_recent = db.session.query(
+        PageView.page, func.count(PageView.id).label("cnt")
+    ).filter(PageView.accessed_at >= thirty_days_ago).group_by(PageView.page).all()
+    pv_recent_dict = {row.page: row.cnt for row in pv_recent}
+
+    total_pv       = sum(pv_total_dict.values())
+    total_pv_recent = sum(pv_recent_dict.values())
+
+    page_stats = []
+    for pid, info in PAGES.items():
+        page_stats.append({
+            "id":     pid,
+            "title":  info["title"],
+            "total":  pv_total_dict.get(pid, 0),
+            "recent": pv_recent_dict.get(pid, 0),
+        })
+    page_stats.sort(key=lambda x: x["total"], reverse=True)
+
     return render_template("admin/index.html",
-        users=users, total=total, premium=premium, free=free)
+        users=users, total=total, premium=premium, free=free,
+        total_pv=total_pv, total_pv_recent=total_pv_recent, page_stats=page_stats)
 
 
 @app.route("/admin/user/<int:user_id>/plan", methods=["POST"])
@@ -504,134 +421,29 @@ def admin_pages():
     return render_template("admin/pages.html", pages=PAGES, settings=settings)
 
 
-# ── Stripe 決済ルート ─────────────────────────────────────
-@app.route("/stripe/create-checkout", methods=["POST"])
-@login_required
-def stripe_create_checkout():
-    try:
-        customer_id = current_user.stripe_customer_id
-        if customer_id:
-            try:
-                stripe.Customer.retrieve(customer_id)
-            except Exception:
-                customer_id = None
+# ── 起動 ─────────────────────────────────────────────────
+# ── 管理者機能 ── app.pyに追記する内容 ──────────────────
+# 以下を app.py の最後（if __name__ == "__main__": の前）に追記してください
 
-        if not customer_id:
-            customer = stripe.Customer.create(
-                email=current_user.email,
-                metadata={"user_id": current_user.id}
-            )
-            customer_id = customer.id
-            current_user.stripe_customer_id = customer_id
-            db.session.commit()
+# ── 管理者チェックデコレータ ─────────────────────────────
+from functools import wraps
 
-        session = stripe.checkout.Session.create(
-            customer=customer_id,
-            payment_method_types=["card"],
-            line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
-            mode="subscription",
-            success_url=url_for("stripe_success", _external=True) + "?session_id={CHECKOUT_SESSION_ID}",
-            cancel_url=url_for("upgrade", _external=True),
-            locale="ja",
-        )
-        return redirect(session.url, code=303)
-    except Exception as e:
-        flash(f"決済の開始に失敗しました: {str(e)}", "error")
-        return redirect(url_for("upgrade"))
-
-@app.route("/stripe/success")
-@login_required
-def stripe_success():
-    """決済成功後のリダイレクト先"""
-    session_id = request.args.get("session_id")
-    if session_id:
-        try:
-            session = stripe.checkout.Session.retrieve(session_id)
-            sub_id  = session.get("subscription")
-            if sub_id:
-                current_user.stripe_subscription_id = sub_id
-                current_user.plan = "premium"
-                db.session.commit()
-        except Exception:
-            pass
-    flash("プレミアムプランへのアップグレードが完了しました！", "success")
-    return redirect(url_for("dashboard"))
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.plan != "admin":
+            flash("管理者権限が必要です。", "error")
+            return redirect(url_for("dashboard"))
+        return f(*args, **kwargs)
+    return decorated
 
 
-@app.route("/stripe/cancel-subscription", methods=["POST"])
-@login_required
-def stripe_cancel_subscription():
-    """サブスクリプションを期末でキャンセル"""
-    sub_id = current_user.stripe_subscription_id
-    if not sub_id:
-        flash("有効なサブスクリプションが見つかりません。", "error")
-        return redirect(url_for("account"))
-    try:
-        stripe.Subscription.modify(sub_id, cancel_at_period_end=True)
-        flash("サブスクリプションのキャンセルを受け付けました。現在の請求期間終了後に無効になります。", "success")
-    except Exception as e:
-        flash(f"キャンセル処理に失敗しました: {str(e)}", "error")
-    return redirect(url_for("account"))
-
-
-@app.route("/stripe/webhook", methods=["POST"])
-def stripe_webhook():
-    """StripeからのWebhookを受信してプラン状態を同期"""
-    payload = request.get_data()
-    sig     = request.headers.get("Stripe-Signature", "")
-    try:
-        event = stripe.Webhook.construct_event(payload, sig, STRIPE_WEBHOOK_SECRET)
-    except Exception:
-        return jsonify({"error": "invalid signature"}), 400
-
-    etype = event["type"]
-    data  = event["data"]["object"]
-
-    if etype == "customer.subscription.deleted":
-        user = User.query.filter_by(stripe_subscription_id=data["id"]).first()
-        if user:
-            user.plan = "free"
-            user.stripe_subscription_id = None
-            db.session.commit()
-
-    elif etype == "customer.subscription.updated":
-        user = User.query.filter_by(stripe_subscription_id=data["id"]).first()
-        if user:
-            status = data.get("status")
-            if status == "active":
-                user.plan = "premium"
-            elif status in ("canceled", "unpaid", "past_due"):
-                user.plan = "free"
-            db.session.commit()
-
-    elif etype == "invoice.payment_failed":
-        cus_id = data.get("customer")
-        user   = User.query.filter_by(stripe_customer_id=cus_id).first()
-        if user:
-            user.plan = "free"
-            db.session.commit()
-
-    return jsonify({"status": "ok"})
-
+if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True, port=5000)
 
 # ── エリアレポート API ────────────────────────────────────
-@app.route("/api/districts")
-@api_login_required
-def api_districts():
-    """市区町村に紐づく地区一覧を返す"""
-    city_name = request.args.get("city_name", "").strip()
-    if not city_name:
-        return jsonify({"districts": []})
-    conn = sqlite3.connect(REALESTATE_DB)
-    rows = conn.execute("""
-        SELECT DISTINCT district FROM csv_transactions
-        WHERE city_name=? AND district IS NOT NULL AND district != ''
-        ORDER BY district
-    """, (city_name,)).fetchall()
-    conn.close()
-    return jsonify({"districts": [r[0] for r in rows]})
-
-
 @app.route("/api/city_report_cities")
 @api_login_required
 def api_city_report_cities():
@@ -754,25 +566,3 @@ def api_city_report():
         "total_count":     int(total_row[0]) if total_row else 0,
         **pop_data,
     })
-
-@app.route("/admin/clear-stripe-customer/<int:user_id>", methods=["POST"])
-@login_required
-@admin_required
-def clear_stripe_customer(user_id):
-    user = User.query.get_or_404(user_id)
-    user.stripe_customer_id = None
-    user.stripe_subscription_id = None
-    db.session.commit()
-    flash("Stripeカスタマー情報をクリアしました。", "success")
-    return redirect(url_for("admin_index"))
-
-@app.route("/ping")
-def ping():
-    return "OK", 200
-if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
-
-
