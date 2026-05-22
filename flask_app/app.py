@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, Response
+﻿from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
     LoginManager, UserMixin,
@@ -19,10 +19,6 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 db            = SQLAlchemy(app)
 login_manager = LoginManager(app)
-
-# Render等のWSGI環境でもテーブルを自動作成
-with app.app_context():
-    db.create_all()
 login_manager.login_view    = "login"
 login_manager.login_message = "ログインが必要です。"
 
@@ -446,9 +442,10 @@ def admin_required(f):
     return decorated
 
 
+with app.app_context():
+    db.create_all()
+
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
     app.run(debug=True, port=5000)
 
 # ── エリアレポート API ────────────────────────────────────
