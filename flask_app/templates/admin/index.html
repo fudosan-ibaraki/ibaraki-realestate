@@ -179,7 +179,7 @@ tr:hover td { background: #FAFAFA; }
                         </tr>
                     </thead>
                     <tbody>
-                        {% set max_pv = page_stats[0].total if page_stats else 1 %}
+                        {% set max_pv = page_stats[0].total if (page_stats and page_stats[0].total > 0) else 1 %}
                         {% for ps in page_stats %}
                         <tr>
                             <td>{{ ps.title }}</td>
