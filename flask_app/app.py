@@ -124,9 +124,6 @@ def ping():
     return 'OK', 200
 
 
-@app.route("/")
-def index():
-
 # ── 通常ルート ────────────────────────────────────────────
 @app.route("/")
 def index():
