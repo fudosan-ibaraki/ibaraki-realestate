@@ -27,19 +27,12 @@
                 <label>パスワード（確認）</label>
                 <input type="password" name="confirm" required placeholder="パスワード（確認）">
             </div>
-            """
-<div class="form-group" style="font-size: 0.85rem; color: #555;">
-    <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer;">
-        <input type="checkbox" name="agree_terms" required style="margin-top: 3px; flex-shrink:0;">
-        <span>
-            <a href="{{ url_for('terms') }}" target="_blank">利用規約</a> および
-            <a href="{{ url_for('privacy') }}" target="_blank">プライバシーポリシー</a>
-            に同意します
-        </span>
-    </label>
-</div>
-"""
- 
+            <div class="form-group">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:400; color:#555;">
+                    <input type="checkbox" name="agree_terms" required>
+                    <span><a href="{{ url_for('terms') }}" target="_blank" style="color:#3F51B5;">利用規約</a> および <a href="{{ url_for('privacy') }}" target="_blank" style="color:#3F51B5;">プライバシーポリシー</a> に同意します</span>
+                </label>
+            </div>
             <button type="submit" class="btn-primary">登録する</button>
         </form>
 

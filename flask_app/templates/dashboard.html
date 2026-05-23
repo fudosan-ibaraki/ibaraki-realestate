@@ -71,9 +71,6 @@
             background: rgba(255,255,255,0.12);
             opacity: 1;
         }
-        .nav-item.locked { opacity: 0.45; cursor: pointer; }
-        .nav-item.locked:hover { background: rgba(255,255,255,0.06); }
-        .lock-badge { margin-left: auto; font-size: 11px; }
 
         .nav-item.active {
             background: rgba(255,255,255,0.2);
@@ -83,31 +80,11 @@
 
         .nav-icon { font-size: 16px; width: 20px; text-align: center; }
 
-        .sidebar-user {
+        .sidebar-footer {
             margin-top: auto;
             padding: 12px 16px;
-            border-top: 1px solid rgba(255,255,255,0.15);
-        }
-        .sidebar-username {
-            font-size: 12px; font-weight: 600;
-            display: flex; align-items: center; gap: 8px;
-            margin-bottom: 8px;
-        }
-        .sidebar-plan {
-            font-size: 10px; padding: 2px 8px;
-            border-radius: 10px; font-weight: 600;
-        }
-        .plan-free    { background: rgba(255,255,255,0.2); color: white; }
-        .plan-premium { background: #FFD700; color: #333; }
-        .plan-admin   { background: #FF6B6B; color: white; }
-        .sidebar-user-links {
-            display: flex; gap: 12px; font-size: 11px;
-            opacity: 0.7; margin-bottom: 10px;
-        }
-        .sidebar-user-links a:hover { opacity: 1; text-decoration: underline; color: white; }
-        .sidebar-footer {
-            padding: 10px 16px;
-            font-size: 10px; opacity: 0.4;
+            font-size: 10px;
+            opacity: 0.45;
             border-top: 1px solid rgba(255,255,255,0.1);
             line-height: 1.6;
         }
@@ -262,48 +239,55 @@
         <p>2020〜2025年 取引データ</p>
     </div>
 
-    <div class="sidebar-section">メニュー</div>
-    {% for page_id, info in pages.items() %}
-    {% if info.section == "menu" %}
-    {% set is_locked = info.plan == "premium" and current_user.plan not in ("premium","admin") %}
-    <div class="nav-item {% if page == page_id %}active{% endif %} {% if is_locked %}locked{% endif %}"
-         onclick="{% if not is_locked %}showPage('{{ page_id }}', this){% else %}window.location='{{ url_for('upgrade') }}'{% endif %}">
-        <span class="nav-icon">{{ info.icon }}</span> {{ info.title }}
-        {% if is_locked %}<span class="lock-badge">🔒</span>{% endif %}
+    <div class="nav-item" onclick="showPage('guide', this)">
+        <span class="nav-icon">📋</span> ガイドライン
     </div>
-    {% endif %}
-    {% endfor %}
+
+    <div class="sidebar-section">メニュー</div>
+
+    <div class="nav-item active" onclick="showPage('home', this)">
+        <span class="nav-icon">🏠</span> ホーム
+    </div>
+    <div class="nav-item" onclick="showPage('map', this)">
+        <span class="nav-icon">🗺️</span> 地図
+    </div>
 
     <div class="sidebar-section">グラフ分析</div>
-    {% for page_id, info in pages.items() %}
-    {% if info.section == "graph" %}
-    {% set is_locked = info.plan == "premium" and current_user.plan not in ("premium","admin") %}
-    <div class="nav-item {% if page == page_id %}active{% endif %} {% if is_locked %}locked{% endif %}"
-         onclick="{% if not is_locked %}showPage('{{ page_id }}', this){% else %}window.location='{{ url_for('upgrade') }}'{% endif %}">
-        <span class="nav-icon">{{ info.icon }}</span> {{ info.title }}
-        {% if is_locked %}<span class="lock-badge">🔒</span>{% endif %}
-    </div>
-    {% endif %}
-    {% endfor %}
 
-    <div class="sidebar-section">ツール</div>
-    <div class="nav-item" onclick="window.location='{{ url_for('estimate') }}'">
-        <span class="nav-icon">🔍</span> 価格推定
+    <div class="nav-item" onclick="showPage('g01', this)">
+        <span class="nav-icon">📈</span> 価格トレンド
+    </div>
+    <div class="nav-item" onclick="showPage('g02', this)">
+        <span class="nav-icon">🏗️</span> 築年数と価格
+    </div>
+    <div class="nav-item" onclick="showPage('g03', this)">
+        <span class="nav-icon">🚉</span> 駅距離と価格
+    </div>
+    <div class="nav-item" onclick="showPage('g04', this)">
+        <span class="nav-icon">🏢</span> 間取り別価格
+    </div>
+    <div class="nav-item" onclick="showPage('g05', this)">
+        <span class="nav-icon">📊</span> 割安・割高
+    </div>
+    <div class="nav-item" onclick="showPage('g06', this)">
+        <span class="nav-icon">🏪</span> 利便性と価格
+    </div>
+    <div class="nav-item" onclick="showPage('g07', this)">
+        <span class="nav-icon">⚠️</span> 浸水リスク別
+    </div>
+    <div class="nav-item" onclick="showPage('g08', this)">
+        <span class="nav-icon">📉</span> 乖離率推移
     </div>
 
-    <div class="sidebar-user">
-        <div class="sidebar-username">
-            👤 {{ current_user.username }}
-            <span class="sidebar-plan plan-{{ current_user.plan }}">
-                {{ "Premium" if current_user.plan == "premium" else ("Admin" if current_user.plan == "admin" else "無料") }}
-            </span>
-        </div>
-        <div class="sidebar-user-links">
-            <a href="{{ url_for('account') }}">アカウント</a>
-            <a href="{{ url_for('upgrade') }}">{% if current_user.plan == "free" %}⭐ アップグレード{% else %}プラン管理{% endif %}</a>
-            <a href="{{ url_for('logout') }}">ログアウト</a>
-        </div>
+    <div class="sidebar-section">AIレポート</div>
+
+    <div class="nav-item" onclick="showPage('g09', this)">
+        <span class="nav-icon">📝</span> エリアレポート
     </div>
+    <div class="nav-item" onclick="showPage('g10', this)">
+        <span class="nav-icon">🔀</span> 地域間比較
+    </div>
+
     <div class="sidebar-footer">
         出典：国土交通省不動産情報ライブラリ<br>
         © OpenStreetMap contributors<br>
@@ -322,7 +306,7 @@
 
         <!-- ガイドライン -->
         <div id="page-guide" class="page">
-            <iframe src="/static/guide.html" title="ガイドライン"></iframe>
+            <iframe src="/guide.html" title="ガイドライン"></iframe>
         </div>
 
         <!-- ホーム -->
@@ -411,37 +395,39 @@
 
         <!-- 地図 -->
         <div id="page-map" class="page">
-            <iframe src="/static/ibaraki_map.html" title="地図"></iframe>
+            <iframe src="/ibaraki_map.html" title="地図"></iframe>
         </div>
 
         <!-- グラフ01〜08 -->
         <div id="page-g01" class="page">
-            <iframe src="/static/g01.html" title="価格トレンド"></iframe>
+            <iframe src="/graph_01_price_trend.html" title="価格トレンド"></iframe>
         </div>
         <div id="page-g02" class="page">
-            <iframe src="/static/g02.html" title="築年数と価格"></iframe>
+            <iframe src="/graph_02_building_age.html" title="築年数と価格"></iframe>
         </div>
         <div id="page-g03" class="page">
-            <iframe src="/static/g03.html" title="駅距離と価格"></iframe>
+            <iframe src="/graph_03_station_distance.html" title="駅距離と価格"></iframe>
         </div>
         <div id="page-g04" class="page">
-            <iframe src="/static/g04.html" title="間取り別価格"></iframe>
+            <iframe src="/graph_04_floor_plan.html" title="間取り別価格"></iframe>
         </div>
         <div id="page-g05" class="page">
-            <iframe src="/static/g05.html" title="割安・割高"></iframe>
+            <iframe src="/graph_05_relative_ranking.html" title="割安・割高"></iframe>
         </div>
         <div id="page-g06" class="page">
-            <iframe src="/static/g06.html" title="利便性と価格"></iframe>
+            <iframe src="/graph_06_convenience.html" title="利便性と価格"></iframe>
         </div>
         <div id="page-g07" class="page">
-            <iframe src="/static/g07.html" title="浸水リスク別"></iframe>
+            <iframe src="/graph_07_hazard.html" title="浸水リスク別"></iframe>
         </div>
         <div id="page-g08" class="page">
-            <iframe src="/static/g08.html" title="乖離率推移"></iframe>
+            <iframe src="/graph_08_deviation_trend.html" title="乖離率推移"></iframe>
         </div>
-
         <div id="page-g09" class="page">
             <iframe src="/static/g09.html" title="エリアレポート"></iframe>
+        </div>
+        <div id="page-g10" class="page">
+            <iframe src="/g10.html" title="地域間比較"></iframe>
         </div>
 
     </div>
@@ -460,6 +446,8 @@ const PAGE_TITLES = {
     g06:   '利便性と価格',
     g07:   '浸水リスク別価格',
     g08:   '乖離率推移',
+    g09:   'エリアレポート',
+    g10:   '地域間比較',
 };
 
 function showPage(pageId, navEl) {
