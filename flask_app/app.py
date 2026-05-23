@@ -94,6 +94,7 @@ PAGES = {
     "g07":   {"title": "浸水リスク別",     "icon": "⚠️", "plan": "premium", "section": "graph"},
     "g08":   {"title": "乖離率推移",       "icon": "📉", "plan": "premium", "section": "graph"},
     "g09":   {"title": "エリアレポート",   "icon": "📝", "plan": "premium", "section": "graph"},
+    "g10":   {"title": "地域間比較",       "icon": "🔀", "plan": "premium", "section": "report"},
 }
 
 
