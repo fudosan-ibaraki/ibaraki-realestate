@@ -228,10 +228,6 @@ def privacy():
     return render_template("privacy.html")
 
 
-@app.route("/privacy")
-def privacy():
-    return render_template("privacy.html")
-
 @app.route("/sitemap.xml")  # ← ここに追加
 def sitemap():
     return Response('''<?xml version="1.0" encoding="UTF-8"?>
