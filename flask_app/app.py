@@ -227,6 +227,32 @@ def terms():
 def privacy():
     return render_template("privacy.html")
 
+@app.route("/terms")
+def terms():
+    return render_template("terms.html")
+
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+@app.route("/sitemap.xml")  # ← ここに追加
+def sitemap():
+    return Response('''<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://ibaraki-realestate.onrender.com/</loc>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://ibaraki-realestate.onrender.com/register</loc>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://ibaraki-realestate.onrender.com/login</loc>
+    <priority>0.8</priority>
+  </url>
+</urlset>''', mimetype='application/xml')
+
 @app.route("/upgrade")
 @login_required
 def upgrade():
