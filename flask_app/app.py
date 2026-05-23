@@ -119,6 +119,14 @@ def api_login_required(f):
     return decorated
 
 
+@app.route('/ping', methods=['GET', 'HEAD'])
+def ping():
+    return 'OK', 200
+
+
+@app.route("/")
+def index():
+
 # ── 通常ルート ────────────────────────────────────────────
 @app.route("/")
 def index():
