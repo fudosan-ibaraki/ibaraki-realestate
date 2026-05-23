@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>地域間比較</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', sans-serif; background: #F8F9FA; }
+        .header {
+            background: linear-gradient(135deg, #1a237e, #1565C0);
+            color: white; padding: 20px 28px;
+        }
+        .header h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+        .header p  { font-size: 12px; opacity: 0.75; }
+
+        .controls {
+            background: white; padding: 16px 24px;
+            border-bottom: 1px solid #E0E0E0;
+            display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap;
+        }
+        .ctrl-group { display: flex; flex-direction: column; gap: 6px; }
+        .ctrl-group label { font-size: 12px; font-weight: 600; color: #555; }
+        .city-select-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .controls select {
+            padding: 8px 12px; border: 1px solid #DDD; border-radius: 6px;
+            font-size: 14px; color: #333; min-width: 180px; cursor: pointer; background: white;
+        }
+        .controls select:focus { outline: none; border-color: #1565C0; }
+        .add-btn {
+            padding: 8px 14px; background: #E8EAF6; color: #3949AB;
+            border: 1px solid #C5CAE9; border-radius: 6px; font-size: 13px;
+            font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        }
+        .add-btn:hover { background: #C5CAE9; }
+        .selected-cities { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+        .city-tag {
+            background: #1565C0; color: white; font-size: 12px;
+            padding: 4px 10px; border-radius: 14px; display: flex; align-items: center; gap: 6px;
+        }
+        .city-tag .remove { cursor: pointer; opacity: 0.7; font-size: 14px; line-height: 1; }
+        .city-tag .remove:hover { opacity: 1; }
+        .gen-btn {
+            padding: 9px 22px; background: #1565C0; color: white;
+            border: none; border-radius: 6px; font-size: 14px;
+            font-weight: 600; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; gap: 8px; align-self: flex-end;
+        }
+        .gen-btn:hover:not(:disabled) { background: #0d47a1; }
+        .gen-btn:disabled { background: #90A4AE; cursor: not-allowed; }
+        .gen-btn .spinner {
+            width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4);
+            border-top-color: white; border-radius: 50%;
+            animation: spin 0.8s linear infinite; display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .main { padding: 20px 24px; max-width: 1100px; margin: 0 auto; }
+
+        .error-msg {
+            background: #FFEBEE; color: #C62828; border-radius: 8px;
+            padding: 14px 18px; font-size: 13px; margin-bottom: 16px;
+        }
+        .hidden { display: none; }
+
+        /* 比較テーブル */
+        .compare-card {
+            background: white; border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            padding: 24px; margin-bottom: 20px; overflow-x: auto;
+        }
+        .compare-card h2 { font-size: 16px; font-weight: 700; color: #1a237e; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th {
+            background: #E8EAF6; color: #3949AB; font-weight: 700;
+            padding: 10px 14px; text-align: left; white-space: nowrap;
+        }
+        th:first-child { border-radius: 6px 0 0 6px; }
+        th:last-child  { border-radius: 0 6px 6px 0; }
+        td {
+            padding: 10px 14px; border-bottom: 1px solid #F0F0F0;
+            vertical-align: middle; white-space: nowrap;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #F5F5F5; }
+        .metric-label { color: #666; font-weight: 600; }
+        .best { color: #2E7D32; font-weight: 700; }
+        .worst { color: #C62828; }
+        .bar-cell { width: 120px; }
+        .bar-wrap { background: #EEE; border-radius: 4px; height: 8px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 4px; background: #1565C0; transition: width 0.5s; }
+
+        /* AIレポート */
+        .report-box {
+            background: white; border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            padding: 28px 32px; margin-bottom: 20px; min-height: 160px;
+        }
+        .report-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 18px; padding-bottom: 14px; border-bottom: 2px solid #E8EAF6;
+        }
+        .report-title { font-size: 17px; font-weight: 700; color: #1a237e; }
+        .report-body {
+            font-size: 14px; line-height: 1.85; color: #333;
+            white-space: pre-wrap; word-break: break-all;
+        }
+        .report-body.streaming::after {
+            content: '▍'; animation: blink 0.8s step-end infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+        .placeholder {
+            color: #BDBDBD; font-size: 14px; text-align: center; padding: 48px 0;
+        }
+        .placeholder .icon { font-size: 36px; margin-bottom: 10px; }
+        .copy-btn {
+            padding: 7px 16px; background: white; color: #555;
+            border: 1px solid #DDD; border-radius: 6px;
+            font-size: 12px; cursor: pointer; transition: all 0.2s;
+        }
+        .copy-btn:hover { background: #F5F5F5; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🔀 地域間比較</h1>
+    <p>複数の市区町村を並べて比較し、AIが違いを解説します</p>
+</div>
+
+<div class="controls">
+    <div class="ctrl-group">
+        <label>比較する市区町村を追加（最大5つ）</label>
+        <div class="city-select-row">
+            <select id="city-select">
+                <option value="">-- 選択してください --</option>
+            </select>
+            <button class="add-btn" onclick="addCity()">＋ 追加</button>
+        </div>
+        <div class="selected-cities" id="selected-cities"></div>
+    </div>
+    <button class="gen-btn" id="gen-btn" onclick="compare()">
+        <span class="spinner" id="spinner"></span>
+        <span id="btn-text">比較する</span>
+    </button>
+</div>
+
+<div class="main">
+    <div id="error-area" class="error-msg hidden"></div>
+
+    <div id="compare-table" class="compare-card hidden">
+        <h2>📊 指標比較表</h2>
+        <table id="tbl"></table>
+    </div>
+
+    <div class="report-box">
+        <div class="report-header">
+            <span class="report-title" id="report-title">地域間比較レポート</span>
+            <button class="copy-btn" id="copy-btn" onclick="copyReport()" style="display:none">📋 コピー</button>
+        </div>
+        <div class="report-body" id="report-body">
+            <div class="placeholder">
+                <div class="icon">🔀</div>
+                比較したい市区町村を2〜5つ選んで「比較する」を押してください。<br>
+                AIが各エリアの特徴と違いを解説します。
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const selectedCities = [];
+const cityData = {};
+
+async function loadCities() {
+    try {
+        const res = await fetch('/api/city_report_cities', { credentials: 'include' });
+        if (!res.ok) { showError(`APIエラー: ${res.status}`); return; }
+        const data = await res.json();
+        if (!data.cities) return;
+        const sel = document.getElementById('city-select');
+        data.cities.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c; opt.textContent = c;
+            sel.appendChild(opt);
+        });
+    } catch(e) { showError('市区町村リストの取得に失敗: ' + e.message); }
+}
+
+function addCity() {
+    const sel = document.getElementById('city-select');
+    const city = sel.value;
+    if (!city) return;
+    if (selectedCities.includes(city)) { alert('すでに追加済みです'); return; }
+    if (selectedCities.length >= 5) { alert('最大5つまで追加できます'); return; }
+    selectedCities.push(city);
+    renderTags();
+}
+
+function removeCity(city) {
+    const idx = selectedCities.indexOf(city);
+    if (idx >= 0) selectedCities.splice(idx, 1);
+    renderTags();
+}
+
+function renderTags() {
+    const area = document.getElementById('selected-cities');
+    area.innerHTML = selectedCities.map(c =>
+        `<span class="city-tag">${c}<span class="remove" onclick="removeCity('${c}')">✕</span></span>`
+    ).join('');
+}
+
+async function compare() {
+    if (selectedCities.length < 2) { alert('2つ以上の市区町村を選択してください'); return; }
+    setLoading(true); hideError();
+
+    // データ取得
+    const results = {};
+    for (const city of selectedCities) {
+        try {
+            const res = await fetch('/api/city_report?city_name=' + encodeURIComponent(city), { credentials: 'include' });
+            const d = await res.json();
+            if (!d.error) results[city] = d;
+        } catch(e) { /* skip */ }
+    }
+
+    if (Object.keys(results).length < 2) {
+        showError('データを取得できた市区町村が2つ未満です');
+        setLoading(false); return;
+    }
+
+    // テーブル描画
+    renderTable(results);
+
+    // AIレポート生成
+    document.getElementById('report-title').textContent = `🔀 ${selectedCities.join(' vs ')} 比較レポート`;
+    document.getElementById('copy-btn').style.display = 'none';
+    const body = document.getElementById('report-body');
+    body.textContent = '';
+    body.classList.add('streaming');
+
+    const prompt = buildComparePrompt(results);
+    await streamClaudeReport(prompt, body);
+
+    body.classList.remove('streaming');
+    document.getElementById('copy-btn').style.display = '';
+    setLoading(false);
+}
+
+function renderTable(results) {
+    const cities = Object.keys(results);
+    const metrics = [
+        { key: 'mansion_median',    label: 'マンション中央値',    unit: '万円',    higher: true },
+        { key: 'land_median_sqm',   label: '宅地㎡単価中央値',    unit: '円/㎡',   higher: true },
+        { key: 'total_count',       label: '取引件数（5年）',      unit: '件',      higher: true },
+        { key: 'avg_station_dist',  label: '平均駅距離',           unit: 'm',       higher: false },
+        { key: 'price_trend_pct',   label: '価格変動率（5年）',    unit: '%',       higher: true },
+        { key: 'hazard_safe_pct',   label: '浸水リスクなし率',     unit: '%',       higher: true },
+        { key: 'avg_conv_score',    label: '利便性スコア',         unit: '点',      higher: true },
+        { key: 'population',        label: '人口',                 unit: '万人',    higher: true, div: 10000 },
+        { key: 'pop_change_rate',   label: '人口増減率（5年）',    unit: '%',       higher: true },
+        { key: 'pop_density',       label: '人口密度',             unit: '人/km²',  higher: true },
+    ];
+
+    const tbl = document.getElementById('tbl');
+    const thead = `<thead><tr><th>指標</th>${cities.map(c=>`<th>${c}</th>`).join('')}</tr></thead>`;
+    let tbody = '<tbody>';
+
+    metrics.forEach(m => {
+        const vals = cities.map(c => {
+            const v = results[c]?.[m.key];
+            return v != null ? parseFloat(v) : null;
+        });
+        const defined = vals.filter(v => v !== null);
+        if (defined.length === 0) return;
+
+        const best  = m.higher ? Math.max(...defined) : Math.min(...defined);
+        const worst = m.higher ? Math.min(...defined) : Math.max(...defined);
+        const maxAbs = Math.max(...defined.map(Math.abs));
+
+        tbody += `<tr><td class="metric-label">${m.label}</td>`;
+        vals.forEach((v, i) => {
+            if (v === null) { tbody += `<td>—</td>`; return; }
+            const display = m.div ? (v / m.div).toFixed(1) : (m.key === 'price_trend_pct' || m.key === 'pop_change_rate') ? (v >= 0 ? '+' : '') + v.toFixed(1) : Math.round(v).toLocaleString();
+            const cls = v === best ? 'best' : v === worst && defined.length > 2 ? 'worst' : '';
+            const barPct = maxAbs > 0 ? Math.abs(v) / maxAbs * 100 : 0;
+            tbody += `<td class="${cls}">${display}${m.unit}<div class="bar-cell"><div class="bar-wrap"><div class="bar-fill" style="width:${barPct}%"></div></div></div></td>`;
+        });
+        tbody += '</tr>';
+    });
+    tbody += '</tbody>';
+
+    tbl.innerHTML = thead + tbody;
+    document.getElementById('compare-table').classList.remove('hidden');
+}
+
+function buildComparePrompt(results) {
+    const cities = Object.keys(results);
+    const rows = cities.map(c => {
+        const d = results[c];
+        return `【${c}】
+- マンション中央値: ${d.mansion_median ? Math.round(d.mansion_median).toLocaleString() + '万円' : 'データなし'}（件数:${d.mansion_count||0}）
+- 宅地㎡単価中央値: ${d.land_median_sqm ? Math.round(d.land_median_sqm).toLocaleString() + '円/㎡' : 'データなし'}（件数:${d.land_count||0}）
+- 価格変動率（5年）: ${d.price_trend_pct != null ? (d.price_trend_pct >= 0 ? '+' : '') + d.price_trend_pct + '%' : 'データなし'}
+- 平均駅距離: ${d.avg_station_dist ? Math.round(d.avg_station_dist) + 'm' : 'データなし'}
+- 浸水リスクなし率: ${d.hazard_safe_pct != null ? d.hazard_safe_pct + '%' : 'データなし'}
+- 利便性スコア: ${d.avg_conv_score != null ? d.avg_conv_score : 'データなし'}点
+- 人口: ${d.population ? (d.population/10000).toFixed(1) + '万人' : 'データなし'}、増減率: ${d.pop_change_rate != null ? (d.pop_change_rate >= 0 ? '+' : '') + d.pop_change_rate.toFixed(1) + '%' : 'データなし'}
+- 取引件数（5年）: ${d.total_count||0}件`;
+    }).join('\n\n');
+
+    return `あなたは不動産市場アナリストです。以下の茨城県内の複数エリアのデータをもとに、エリア間の特徴と違いを比較解説するレポートを1,000字程度で執筆してください。
+
+${rows}
+
+【執筆ルール】
+- 各エリアの強みと弱みを数値を引用しながら具体的に述べる
+- 「価格水準」「利便性・交通」「リスク・安全性」「人口・将来性」の観点で比較する
+- どのような人・ライフスタイルに各エリアが向いているかを述べる
+- 箇条書きは使わず、読み物形式の文章で
+- 1,000字前後（800〜1,200字）`;
+}
+
+async function streamClaudeReport(prompt, bodyEl) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1500,
+            stream: true,
+            messages: [{ role: 'user', content: prompt }]
+        })
+    });
+    if (!res.ok) throw new Error('Claude API error: ' + await res.text());
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const data = line.slice(6).trim();
+            if (data === '[DONE]') return;
+            try {
+                const j = JSON.parse(data);
+                if (j.type === 'content_block_delta' && j.delta?.text) {
+                    bodyEl.textContent += j.delta.text;
+                }
+            } catch(_) {}
+        }
+    }
+}
+
+function setLoading(on) {
+    const btn = document.getElementById('gen-btn');
+    document.getElementById('spinner').style.display = on ? 'block' : 'none';
+    document.getElementById('btn-text').textContent  = on ? '取得中...' : '比較する';
+    btn.disabled = on;
+}
+function showError(msg) {
+    const el = document.getElementById('error-area');
+    el.textContent = msg; el.classList.remove('hidden');
+}
+function hideError() { document.getElementById('error-area').classList.add('hidden'); }
+function copyReport() {
+    navigator.clipboard.writeText(document.getElementById('report-body').textContent).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = '✅ コピー済み';
+        setTimeout(() => { btn.textContent = '📋 コピー'; }, 2000);
+    });
+}
+
+loadCities();
+</script>
+</body>
+</html>
