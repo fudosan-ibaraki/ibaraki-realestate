@@ -1,4 +1,4 @@
-﻿from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, Response, send_from_directory
+from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
     LoginManager, UserMixin,
@@ -94,7 +94,7 @@ PAGES = {
     "g07":   {"title": "浸水リスク別",     "icon": "⚠️", "plan": "premium", "section": "graph"},
     "g08":   {"title": "乖離率推移",       "icon": "📉", "plan": "premium", "section": "graph"},
     "g09":   {"title": "エリアレポート",   "icon": "📝", "plan": "premium", "section": "graph"},
-    "g10":   {"title": "地域間比較",       "icon": "🔀", "plan": "premium", "section": "report"},
+    "g10":   {"title": "地域間比較",       "icon": "🔀", "plan": "premium", "section": "graph"},
 }
 
 
@@ -119,23 +119,10 @@ def api_login_required(f):
     return decorated
 
 
-@app.route('/ping', methods=['GET', 'HEAD'])
-def ping():
-    return 'OK', 200
-
-
 # ── 通常ルート ────────────────────────────────────────────
 @app.route("/")
 def index():
-    if current_user.is_authenticated:
-        return redirect(url_for("dashboard"))
-    return render_template("landing.html")
-
-
-@app.route("/<path:filename>.html")
-def serve_html(filename):
-    base = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-    return send_from_directory(base, filename + ".html")
+    return redirect(url_for("dashboard", page="home"))
 
 
 def get_page_settings():
@@ -225,32 +212,6 @@ def logout():
     flash("ログアウトしました。", "success")
     return redirect(url_for("login"))
 
-@app.route("/terms")
-def terms():
-    return render_template("terms.html")
-
-@app.route("/privacy")
-def privacy():
-    return render_template("privacy.html")
-
-
-@app.route("/sitemap.xml")  # ← ここに追加
-def sitemap():
-    return Response('''<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://ibaraki-realestate.onrender.com/</loc>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://ibaraki-realestate.onrender.com/register</loc>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://ibaraki-realestate.onrender.com/login</loc>
-    <priority>0.8</priority>
-  </url>
-</urlset>''', mimetype='application/xml')
 
 @app.route("/upgrade")
 @login_required
@@ -754,8 +715,8 @@ def api_city_report():
         **pop_data,
     })
 
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    port = int(os.environ.get("PORT", 5000))
-    app.run(debug=False, host="0.0.0.0", port=port)
+    app.run(debug=True, port=5000)
